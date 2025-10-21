@@ -1,0 +1,16 @@
+pandas
+numpy
+scikit-learn
+tensorflow==2.20.0
+joblib
+yfinance
+streamlit
+plotly
+lightgbm
+scipy
+optuna
+statsmodels
+shap
+matplotlib
+ipython
+postgres

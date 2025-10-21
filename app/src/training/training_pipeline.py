@@ -10,9 +10,9 @@ from src.backtesting.risk_analyzer import RiskAnalyzer
 from src.config.params import Params
 from src.data.data_loader import DataLoader
 from src.logger.logger import logger
-from src.models.classification import ClassificadorTrading
-from src.models.feature_engineer import FeatureEngineer
-from src.models.validation import PurgedKFoldCV
+from src.models.classification.classification import ClassificadorTrading
+from src.models.classification.feature_engineer import FeatureEngineer
+from src.models.classification.validation import PurgedKFoldCV
 
 
 class TreinadorModelos:

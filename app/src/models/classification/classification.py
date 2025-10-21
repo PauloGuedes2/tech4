@@ -1,5 +1,7 @@
 import os
 
+from src.models.classification.validation import PurgedKFoldCV
+
 os.environ['LIGHTGBM_VERBOSE'] = '-1'  # Suprime logs verbosos do LightGBM
 
 from typing import Dict, Any, List, Tuple, Optional
@@ -14,7 +16,6 @@ import shap
 
 from src.config.params import Params
 from src.logger.logger import logger
-from src.models.validation import PurgedKFoldCV
 from src.backtesting.risk_analyzer import RiskAnalyzer
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)  # Suprime logs verbosos do Optuna

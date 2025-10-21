@@ -12,7 +12,8 @@ from joblib import load
 from src.config.params import Params
 from src.data.data_loader import DataLoader
 from src.data.data_updater import data_updater
-from src.models.feature_engineer import FeatureEngineer
+from src.models.classification.feature_engineer import FeatureEngineer
+from src.models.regression.regression_lstm import RegressaoLSTM
 from src.ui.dashboard_view import DashboardView
 
 st.set_page_config(layout="wide", page_title="Análise Preditiva de Ativos", page_icon="📈")
@@ -66,6 +67,12 @@ class DashboardTrading:
         caminho = os.path.join(Params.PATH_MODELOS, f"modelo_{ticker}.joblib")
         if os.path.exists(caminho):
             try:
+                import sys
+                import src.models.classification.classification as classification_module
+                import src.models.classification.validation as validation_module
+                sys.modules['src.models.classification'] = classification_module
+                sys.modules['src.models.validation'] = validation_module
+
                 modelo = load(caminho)
 
                 # Lógica de fallback para data de treinamento
@@ -83,6 +90,18 @@ class DashboardTrading:
                 st.error(f"Erro ao carregar o modelo '{ticker}': {e}")
                 return None, None
         return None, None
+
+    @st.cache_resource(ttl=3600, show_spinner="Carregando modelo de Regressão...")
+    def _carregar_modelo_lstm(_self, ticker: str) -> RegressaoLSTM | None:
+        """Carrega todos os artefatos do modelo LSTM."""
+        path_modelos_lstm = os.path.join(Params.SRC_ROOT, "modelos_treinados_lstm")
+        try:
+            # O método de classe carrega tudo e retorna um objeto pronto
+            regressor = RegressaoLSTM.carregar_artefatos(ticker=ticker, base_path=path_modelos_lstm)
+            return regressor
+        except Exception as e:
+            st.error(f"Erro ao carregar o modelo LSTM para '{ticker}': {e}")
+            return None
 
     @st.cache_data(show_spinner="Processando dados do mercado...")
     def _processar_dados_e_previsao(_self, ticker: str, _modelo: Any) -> dict:
@@ -220,6 +239,12 @@ class DashboardTrading:
 
         dados = self._processar_dados_e_previsao(self.ticker_selecionado, self.modelo_carregado)
 
+        regressor_lstm = self._carregar_modelo_lstm(self.ticker_selecionado)
+        previsao_lstm = None
+        if regressor_lstm:
+            df_ticker_completo = dados['df_ticker']
+            previsao_lstm = regressor_lstm.prever(df_ticker_completo)
+
         validacao_recente, metricas_validacao = self._gerar_validacao_recente(dados)
 
         self.view.render_main_layout(
@@ -228,7 +253,8 @@ class DashboardTrading:
             dados=dados,
             validacao_recente=validacao_recente,
             metricas_validacao=metricas_validacao,
-            data_treinamento=data_treinamento
+            data_treinamento=data_treinamento,
+            previsao_lstm=previsao_lstm
         )
 
     @staticmethod

@@ -11,6 +11,7 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 from src.backtesting.risk_analyzer import RiskAnalyzer
 from src.config.params import Params
+from src.models.classification.validation import PurgedKFoldCV
 
 
 class DashboardView:
@@ -49,7 +50,8 @@ class DashboardView:
                 "- **Não é uma Bola de Cristal:** Fatores macroeconômicos e notícias não estão no escopo do modelo.\n"
                 "- **Use como Ferramenta:** Esta análise deve ser usada como mais uma camada de informação em seu processo de decisão.")
 
-    def render_main_layout(self, ticker, modelo, dados, validacao_recente, metricas_validacao, data_treinamento=None):
+    def render_main_layout(self, ticker, modelo, dados, validacao_recente, metricas_validacao, data_treinamento=None,
+                           previsao_lstm=None):
         """Renderiza o layout principal, incluindo o painel de veredito e as abas de análise profunda."""
 
         data_base = dados.get("data_base_analise")
@@ -67,7 +69,7 @@ class DashboardView:
         if data_treinamento:
             self.st.caption(f"🗓️ &nbsp; Modelo treinado em: {data_treinamento.strftime('%d/%m/%Y às %H:%M')}")
 
-        self._render_verdict_panel(modelo, dados)
+        self._render_verdict_panel(modelo, dados, previsao_lstm)
 
         self.st.info("Para entender os detalhes por trás do veredito, explore as abas de análise abaixo.", icon="👇")
 
@@ -84,7 +86,35 @@ class DashboardView:
         with tab3:
             self._render_tab_mercado(ticker, modelo, dados)
 
-    def _render_verdict_panel(self, modelo, dados):
+    @staticmethod
+    def _calcular_indice_confiabilidade(metricas: Dict[str, Any]) -> tuple[int, int, str, str]:
+        score, max_score = 0, 9
+        sharpe = metricas.get('sharpe_medio', 0)
+        f1 = metricas.get('f1_macro_medio', 0)
+        trades = metricas.get('trades_medio', 0)
+        if sharpe > 1.0:
+            score += 3
+        elif sharpe > 0.3:
+            score += 2
+        elif sharpe > -0.1:
+            score += 1
+        if f1 > 0.65:
+            score += 3
+        elif f1 > 0.55:
+            score += 2
+        elif f1 > 0.50:
+            score += 1
+        if trades > 8:
+            score += 3
+        elif trades > 4:
+            score += 2
+        elif trades >= 2.5:
+            score += 1
+        if score >= 7: return score, max_score, "Alta Robustez", "green"
+        if score >= 4: return score, max_score, "Média Robustez", "orange"
+        return score, max_score, "Baixa Robustez", "red"
+
+    def _render_verdict_panel(self, modelo, dados, previsao_lstm=None):
         """Renderiza o painel principal com o veredito e as métricas mais importantes."""
         previsao = dados['previsao']
         wfv_metrics = modelo.wfv_metrics
@@ -93,21 +123,28 @@ class DashboardView:
         recomendacao = "🟢 **OPORTUNIDADE**" if previsao['should_operate'] else "🟡 **OBSERVAR**"
 
         st.markdown("---")
-        cols = self.st.columns(5)
+        cols = self.st.columns(6)
 
         with cols[0]:
             st.markdown(f"<h3 style='text-align: center;'>Veredito</h3>", unsafe_allow_html=True)
             st.markdown(f"<h2 style='text-align: center;'>{recomendacao}</h2>", unsafe_allow_html=True)
 
-        cols[1].metric("Probabilidade de Alta", f"{previsao['probabilidade']:.1%}",
+        with cols[1]:
+            if previsao_lstm is not None:
+                st.metric("Previsão (LSTM)", f"R$ {previsao_lstm:.2f}",
+                          help="Previsão do valor de fechamento para o próximo dia útil, calculada pelo modelo de Deep Learning (LSTM).")
+            else:
+                st.metric("Previsão (LSTM)", "N/A", help="Modelo LSTM não carregado.")
+
+        cols[2].metric("Probabilidade de Alta", f"{previsao['probabilidade']:.1%}",
                        help="Probabilidade estimada pelo modelo para a ocorrência de um evento de alta, conforme a metodologia da Tripla Barreira.")
-        cols[2].metric("Score de Robustez", f"{score}/{max_score}",
+        cols[3].metric("Score de Robustez", f"{score}/{max_score}",
                        help="Pontuação de 0 a 9 que resume a robustez histórica do modelo para este ativo, com base na validação Walk-Forward. Scores mais altos indicam maior confiança histórica.")
-        cols[3].metric("Sharpe Médio (WFV)", f"{wfv_metrics.get('sharpe_medio', 0):.2f}",
+        cols[4].metric("Sharpe Médio (WFV)", f"{wfv_metrics.get('sharpe_medio', 0):.2f}",
                        help="Mede o retorno ajustado ao risco na validação mais robusta (Walk-Forward). Acima de 0.5 é bom; acima de 1.0 é excelente.")
 
         wfv_performance = modelo.gerar_performance_wfv_agregada(dados['y_full'], dados['precos_full'], dados['t1'])
-        cols[4].metric("Taxa de Acerto (WFV)", f"{wfv_performance.get('win_rate', 0):.1%}",
+        cols[5].metric("Taxa de Acerto (WFV)", f"{wfv_performance.get('win_rate', 0):.1%}",
                        help="Percentual de operações que resultaram em lucro durante a validação Walk-Forward. Um valor consistentemente acima de 50% é desejável.")
         st.markdown("---")
 
@@ -142,9 +179,12 @@ class DashboardView:
 
         if wfv_performance['trades'] > 0:
             cols = self.st.columns(4)
-            cols[0].metric("Retorno Total (WFV)", f"{wfv_performance['retorno_total']:.2%}", help="Retorno percentual acumulado ao final da validação Walk-Forward. Representa o ganho/perda total da estratégia na simulação mais realista.")
-            cols[1].metric("Nº de Trades (WFV)", f"{wfv_performance['trades']}", help="Número total de operações executadas na validação WFV. Um número maior de trades (>50) confere maior robustez estatística aos resultados.")
-            cols[2].metric("Taxa de Acerto (WFV)", f"{wfv_performance['win_rate']:.1%}", help="Percentual de operações que resultaram em lucro durante a validação Walk-Forward. Um valor consistentemente acima de 50% é desejável.")
+            cols[0].metric("Retorno Total (WFV)", f"{wfv_performance['retorno_total']:.2%}",
+                           help="Retorno percentual acumulado ao final da validação Walk-Forward. Representa o ganho/perda total da estratégia na simulação mais realista.")
+            cols[1].metric("Nº de Trades (WFV)", f"{wfv_performance['trades']}",
+                           help="Número total de operações executadas na validação WFV. Um número maior de trades (>50) confere maior robustez estatística aos resultados.")
+            cols[2].metric("Taxa de Acerto (WFV)", f"{wfv_performance['win_rate']:.1%}",
+                           help="Percentual de operações que resultaram em lucro durante a validação Walk-Forward. Um valor consistentemente acima de 50% é desejável.")
             cols[3].metric("Max Drawdown (WFV)", f"{wfv_performance['max_drawdown']:.2%}",
                            help="A maior queda percentual do capital a partir de um pico durante a simulação WFV. Mede o pior cenário de perda histórica. Abaixo de -20% exige atenção.")
 
@@ -181,7 +221,8 @@ class DashboardView:
 
         self.st.divider()
         self.st.subheader("DNA do Modelo: Fatores e Performance de Classificação")
-        self.st.caption("Esta seção aprofunda no funcionamento interno do modelo, revelando quais fatores são mais importantes para sua decisão e quão bem ele consegue distinguir entre os diferentes cenários de mercado (alta, baixa e neutro).")
+        self.st.caption(
+            "Esta seção aprofunda no funcionamento interno do modelo, revelando quais fatores são mais importantes para sua decisão e quão bem ele consegue distinguir entre os diferentes cenários de mercado (alta, baixa e neutro).")
         col1, col2 = self.st.columns(2)
         with col1:
             self.st.markdown("**Variáveis Mais Influentes**")
@@ -199,8 +240,8 @@ class DashboardView:
         backtest_info = risk_analyzer.backtest_sinais(df_sinais)
 
         self.st.plotly_chart(self._plot_precos_sinais(df_sinais, dados['precos_full']), use_container_width=True)
-        self.st.caption("Como interpretar: Este gráfico mostra o histórico de preços do ativo com marcadores verdes nos dias em que o modelo teria sinalizado uma 'Oportunidade', com base em todos os dados (visão otimista).")
-
+        self.st.caption(
+            "Como interpretar: Este gráfico mostra o histórico de preços do ativo com marcadores verdes nos dias em que o modelo teria sinalizado uma 'Oportunidade', com base em todos os dados (visão otimista).")
 
         if backtest_info.get('trades', 0) > 0:
             self._render_secao_metricas_simulacao(backtest_info)
@@ -219,16 +260,16 @@ class DashboardView:
         if num_oportunidades > 0:
             col1, col2, col3 = self.st.columns(3)
             col1.metric("Taxa de Acerto (Oportunidades)", f"{metricas.get('taxa_acerto', 0):.1%}",
-                         help="Dos sinais de 'OPORTUNIDADE' gerados, qual % foi seguido por uma variação diária positiva.")
+                        help="Dos sinais de 'OPORTUNIDADE' gerados, qual % foi seguido por uma variação diária positiva.")
             col2.metric("Assertividade Geral", f"{metricas.get('assertividade_geral', 0):.1%}",
                         help="Percentual de dias em que o modelo tomou a decisão correta (acertando altas ou evitando perdas).")
             col3.metric("Retorno Médio Diário (nos Acertos)", f"{metricas.get('retorno_medio_acertos', 0):.2%}",
-                         help="A variação média do preço no dia seguinte para os sinais de 'OPORTUNIDADE' que o modelo acertou.")
+                        help="A variação média do preço no dia seguinte para os sinais de 'OPORTUNIDADE' que o modelo acertou.")
         else:
             col1, col2 = self.st.columns([1, 3])
             with col1:
                 self.st.metric("Assertividade Geral", f"{metricas.get('assertividade_geral', 0):.1%}",
-                                 help="Percentual de dias em que o modelo tomou a decisão correta (neste caso, o quão bem ele evitou perdas).")
+                               help="Percentual de dias em que o modelo tomou a decisão correta (neste caso, o quão bem ele evitou perdas).")
             with col2:
                 self.st.info(
                     "O modelo não identificou sinais de 'Oportunidade' no período recente. A 'Assertividade Geral' reflete o quão bem ele evitou perdas nos dias em que recomendou observar.",
@@ -272,29 +313,29 @@ class DashboardView:
         """Renderiza um expander explicando a metodologia do Score de Confiança."""
         with self.st.expander("Como o Score de Robustez é calculado? 🤔"):
             self.st.markdown("""
-            O score é uma nota de 0 a 9 que resume a robustez histórica do modelo para este ativo, com base em 3 pilares da validação Walk-Forward (WFV):
+                O score é uma nota de 0 a 9 que resume a robustez histórica do modelo para este ativo, com base em 3 pilares da validação Walk-Forward (WFV):
 
-            **1. Risco-Retorno (Sharpe Ratio):** Mede a qualidade do retorno em relação ao risco assumido.
-            - `Sharpe > 1.0`: **+3 pontos** (Excelente)
-            - `Sharpe > 0.3`: **+2 pontos** (Bom)
-            - `Sharpe > -0.1`: **+1 ponto** (Aceitável)
+                **1. Risco-Retorno (Sharpe Ratio):** Mede a qualidade do retorno em relação ao risco assumido.
+                - `Sharpe > 1.0`: **+3 pontos** (Excelente)
+                - `Sharpe > 0.3`: **+2 pontos** (Bom)
+                - `Sharpe > -0.1`: **+1 ponto** (Aceitável)
 
-            **2. Qualidade Preditiva (F1-Score):** Mede o equilíbrio do modelo em acertar as oportunidades sem gerar muitos alarmes falsos.
-            - `F1-Score > 65%`: **+3 pontos** (Ótima)
-            - `F1-Score > 55%`: **+2 pontos** (Boa)
-            - `F1-Score > 50%`: **+1 ponto** (Razoável)
+                **2. Qualidade Preditiva (F1-Score):** Mede o equilíbrio do modelo em acertar as oportunidades sem gerar muitos alarmes falsos.
+                - `F1-Score > 65%`: **+3 pontos** (Ótima)
+                - `F1-Score > 55%`: **+2 pontos** (Boa)
+                - `F1-Score > 50%`: **+1 ponto** (Razoável)
 
-            **3. Relevância Estatística (Média de Trades):** Garante que a performance foi observada em um número mínimo de operações.
-            - `Média > 8 trades/fold`: **+3 pontos** (Ativo)
-            - `Média > 4 trades/fold`: **+2 pontos** (Moderado)
-            - `Média > 2.5 trades/fold`: **+1 ponto** (Seletivo)
+                **3. Relevância Estatística (Média de Trades):** Garante que a performance foi observada em um número mínimo de operações.
+                - `Média > 8 trades/fold`: **+3 pontos** (Ativo)
+                - `Média > 4 trades/fold`: **+2 pontos** (Moderado)
+                - `Média > 2.5 trades/fold`: **+1 ponto** (Seletivo)
 
-            ---
-            **Score Final:**
-            - **7-9 Pontos:** <span style='color:green;font-weight:bold;'>Alta Confiança</span>
-            - **4-6 Pontos:** <span style='color:orange;font-weight:bold;'>Média Confiança</span>
-            - **0-3 Pontos:** <span style='color:red;font-weight:bold;'>Baixa Confiança</span>
-            """, unsafe_allow_html=True)
+                ---
+                **Score Final:**
+                - **7-9 Pontos:** <span style='color:green;font-weight:bold;'>Alta Confiança</span>
+                - **4-6 Pontos:** <span style='color:orange;font-weight:bold;'>Média Confiança</span>
+                - **0-3 Pontos:** <span style='color:red;font-weight:bold;'>Baixa Confiança</span>
+                """, unsafe_allow_html=True)
 
     def _plot_rolling_sharpe_wfv(self, performance_data: dict, janela: int = 25):
         """Plota o Sharpe Ratio móvel da validação Walk-Forward."""
@@ -324,8 +365,8 @@ class DashboardView:
             height=400
         )
         self.st.plotly_chart(fig, use_container_width=True)
-        self.st.caption("Como interpretar: Este gráfico mostra a evolução do retorno ajustado ao risco. Uma linha que se mantém consistentemente acima de 0.5 (bom) ou 1.0 (ótimo) indica uma performance robusta e estável ao longo do tempo.")
-
+        self.st.caption(
+            "Como interpretar: Este gráfico mostra a evolução do retorno ajustado ao risco. Uma linha que se mantém consistentemente acima de 0.5 (bom) ou 1.0 (ótimo) indica uma performance robusta e estável ao longo do tempo.")
 
     def _plot_wfv_equity_curve(self, performance_data: dict):
         curva_capital = performance_data.get('equity_curve', [])
@@ -339,8 +380,8 @@ class DashboardView:
             yaxis_title='Capital Relativo (Início = R$1)',
             height=400)
         self.st.plotly_chart(fig, use_container_width=True)
-        self.st.caption("Como interpretar: Uma curva consistentemente ascendente indica uma estratégia lucrativa. A inclinação representa a taxa de retorno. Períodos planos indicam que o modelo não encontrou oportunidades.")
-
+        self.st.caption(
+            "Como interpretar: Uma curva consistentemente ascendente indica uma estratégia lucrativa. A inclinação representa a taxa de retorno. Períodos planos indicam que o modelo não encontrou oportunidades.")
 
     def _render_secao_previsao_shap(self, X_full, modelo):
         if not hasattr(modelo, 'shap_explainer') or modelo.shap_explainer is None:
@@ -358,10 +399,10 @@ class DashboardView:
             self.st.pyplot(fig)
             plt.close()
             self.st.caption("""
-                **Como ler este gráfico:** O valor `f(x)` final representa a "Probabilidade de Alta".
-                As **barras azuis** são os fatores que empurraram a probabilidade para cima (contribuíram para um sinal de OPORTUNIDADE).
-                As **barras vermelhas** empurraram a probabilidade para baixo.
-                        """)
+                    **Como ler este gráfico:** O valor `f(x)` final representa a "Probabilidade de Alta".
+                    As **barras azuis** são os fatores que empurraram a probabilidade para cima (contribuíram para um sinal de OPORTUNIDADE).
+                    As **barras vermelhas** empurraram a probabilidade para baixo.
+                            """)
 
     def _render_secao_saude_modelo(self, X_full, modelo):
         if not hasattr(modelo, 'training_data_profile') or modelo.training_data_profile is None:
@@ -403,10 +444,10 @@ class DashboardView:
             ultimo_preco = df_recente['Preço'].iloc[-1]
             proximo_dia = df_recente.index[-1] + pd.tseries.offsets.BDay(1)
             fig.add_trace(go.Scatter(x=[proximo_dia], y=[ultimo_preco], mode='markers', name='Sinal de Oportunidade',
-                                      marker=dict(color='green', size=15, symbol='circle',
+                                     marker=dict(color='green', size=15, symbol='circle',
                                                  line={'width': 2, 'color': 'darkgreen'})))
         fig.update_layout(height=400, margin=dict(l=20, r=20, t=20, b=20),
-                           legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+                          legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
         self.st.plotly_chart(fig, use_container_width=True)
 
     def _plot_wfv_signals_on_price(self, precos_full: pd.Series, performance_data: dict):
@@ -434,7 +475,8 @@ class DashboardView:
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
         )
         self.st.plotly_chart(fig, use_container_width=True)
-        self.st.caption("Como interpretar: Os triângulos verdes mostram os pontos exatos onde o modelo teria identificado uma oportunidade de entrada durante a simulação mais realista (Walk-Forward). Isso ajuda a visualizar o comportamento do modelo em diferentes condições de mercado.")
+        self.st.caption(
+            "Como interpretar: Os triângulos verdes mostram os pontos exatos onde o modelo teria identificado uma oportunidade de entrada durante a simulação mais realista (Walk-Forward). Isso ajuda a visualizar o comportamento do modelo em diferentes condições de mercado.")
 
     def _plot_performance_vs_ibov(self, precos_ativo: pd.Series, df_ibov: pd.DataFrame, ticker: str):
         if df_ibov is None or df_ibov.empty:
@@ -474,8 +516,6 @@ class DashboardView:
 
     def _plot_matriz_confusao(self, y_full: pd.Series, modelo: Any):
         try:
-            from src.models.validation import PurgedKFoldCV
-
             if not hasattr(modelo, 'cv_gen') or not hasattr(modelo.cv_gen, 't1'):
                 self.st.warning("Não foi possível gerar a Matriz de Confusão: objeto 't1' não encontrado no modelo.")
                 return
@@ -485,7 +525,6 @@ class DashboardView:
             x_aligned = modelo.X_scaled.loc[common_index]
             y_aligned = y_full.loc[common_index]
             t1_aligned = modelo.cv_gen.t1.loc[common_index]
-
 
             cv_gen_temp = PurgedKFoldCV(n_splits=modelo.cv_gen.n_splits, t1=t1_aligned,
                                         purge_days=modelo.cv_gen.purge_days)
@@ -514,84 +553,61 @@ class DashboardView:
         """ Renderiza a seção que traduz os fatores técnicos em termos simples."""
         with self.st.expander("O que esses fatores significam em termos simples? 🤔"):
             self.st.markdown("""
-            O modelo analisa 18 fatores (features) para tomar sua decisão. Eles são agrupados em categorias para medir diferentes aspectos do comportamento do ativo:
+                O modelo analisa 18 fatores (features) para tomar sua decisão. Eles são agrupados em categorias para medir diferentes aspectos do comportamento do ativo:
 
-            ---
-            #### 📈 Indicadores de Momentum (Força e Velocidade do Preço)
-            * **`retorno_1d`, `retorno_3d`**: O quão forte o preço subiu ou caiu no curtíssimo prazo (últimos 1 e 3 dias).
-            * **`momentum_5d`, `momentum_21d`**: Medem o "impulso" do preço nas últimas 1 e 4 semanas. Um momentum alto e positivo indica que a tendência de alta está acelerando.
-            * **`rsi_14` (Índice de Força Relativa)**: Um "termômetro" de 0 a 100 que mede se o ativo está "caro" (sobrecomprado, >70) ou "barato" (sobrevendido, <30) recentemente.
-            * **`stoch_14` (Estocástico)**: Similar ao RSI, mede onde o preço de fechamento está em relação à sua faixa de variação recente (máximas e mínimas). Um valor alto (>80) indica que o ativo fechou perto de sua máxima, um sinal de força.
-            ---
-            #### 📊 Indicadores de Tendência
-            * **`sma_ratio_10_50`, `sma_ratio_50_200`**: Comparam tendências de curto prazo com as de longo prazo. Quando a razão é > 1.0, a tendência de curto prazo é mais forte, sinalizando uma possível tendência de alta (um "cruzamento dourado").
-            * **`macd_hist` (Histograma MACD)**: Mede a diferença entre duas médias móveis de tendência. Quando o histograma está positivo e crescendo, indica que o momentum de alta está se fortalecendo.
-            ---
-            #### 🎢 Indicadores de Volatilidade (Agitação do Mercado)
-            * **`vol_21d`**: A medida estatística clássica da volatilidade. Informa o quão "nervoso" ou instável o preço do ativo tem sido no último mês.
-            * **`vol_of_vol_10d` (Volatilidade da Volatilidade)**: Mede se a própria volatilidade está estável ou mudando rapidamente. Uma alta neste indicador pode sinalizar uma mudança no comportamento do mercado.
-            * **`atr_14_norm` (ATR Normalizado)**: Mede o "tamanho médio do candle" dos últimos 14 dias, normalizado pelo preço. É uma medida pura do range de negociação diário.
-            * **`bollinger_pct` (%B)**: Indica onde o preço atual está em relação às Bandas de Bollinger. Um valor > 1.0 significa que o preço fechou acima da banda superior (movimento forte, talvez sobrecomprado). Um valor < 0 significa que fechou abaixo da banda inferior (movimento fraco, talvez sobrevendido).
-            ---
-            #### 📉 Indicadores de Volume (Intensidade da Negociação)
-            * **`volume_ratio_21d`**: Compara o volume de negociação de hoje com a média do último mês. Um valor > 1.0 indica um interesse excepcionalmente alto no ativo, o que pode validar um movimento de preço.
-            * **`obv_norm_21d` (On-Balance Volume Normalizado)**: É um total acumulado do volume, que aumenta em dias de alta e diminui em dias de baixa. Mede a pressão de compra e venda acumulada.
-            * **`cmf_20` (Chaikin Money Flow)**: Mede o fluxo de dinheiro para dentro ou para fora do ativo. Um valor positivo indica pressão compradora, enquanto um negativo indica pressão vendedora.
-            ---
-            #### 🌍 Indicadores de Mercado (Contexto)
-            * **`correlacao_ibov_20d`**: Mede o quão "em sintonia" o ativo está com o índice Ibovespa. Um valor próximo de +1 indica que ele tende a seguir o mercado; próximo de -1, que ele se move na direção oposta.
-            * **`ibov_acima_sma50`**: Um simples sinal (Sim/Não) que verifica se o mercado em geral (Ibovespa) está em uma tendência de médio prazo de alta. Um sinal de oportunidade no ativo pode ser mais forte se o mercado como um todo também estiver subindo.
-            """)
+                ---
+                #### 📈 Indicadores de Momentum (Força e Velocidade do Preço)
+                * **`retorno_1d`, `retorno_3d`**: O quão forte o preço subiu ou caiu no curtíssimo prazo (últimos 1 e 3 dias).
+                * **`momentum_5d`, `momentum_21d`**: Medem o "impulso" do preço nas últimas 1 e 4 semanas. Um momentum alto e positivo indica que a tendência de alta está acelerando.
+                * **`rsi_14` (Índice de Força Relativa)**: Um "termômetro" de 0 a 100 que mede se o ativo está "caro" (sobrecomprado, >70) ou "barato" (sobrevendido, <30) recentemente.
+                * **`stoch_14` (Estocástico)**: Similar ao RSI, mede onde o preço de fechamento está em relação à sua faixa de variação recente (máximas e mínimas). Um valor alto (>80) indica que o ativo fechou perto de sua máxima, um sinal de força.
+                ---
+                #### 📊 Indicadores de Tendência
+                * **`sma_ratio_10_50`, `sma_ratio_50_200`**: Comparam tendências de curto prazo com as de longo prazo. Quando a razão é > 1.0, a tendência de curto prazo é mais forte, sinalizando uma possível tendência de alta (um "cruzamento dourado").
+                * **`macd_hist` (Histograma MACD)**: Mede a diferença entre duas médias móveis de tendência. Quando o histograma está positivo e crescendo, indica que o momentum de alta está se fortalecendo.
+                ---
+                #### 🎢 Indicadores de Volatilidade (Agitação do Mercado)
+                * **`vol_21d`**: A medida estatística clássica da volatilidade. Informa o quão "nervoso" ou instável o preço do ativo tem sido no último mês.
+                * **`vol_of_vol_10d` (Volatilidade da Volatilidade)**: Mede se a própria volatilidade está estável ou mudando rapidamente. Uma alta neste indicador pode sinalizar uma mudança no comportamento do mercado.
+                * **`atr_14_norm` (ATR Normalizado)**: Mede o "tamanho médio do candle" dos últimos 14 dias, normalizado pelo preço. É uma medida pura do range de negociação diário.
+                * **`bollinger_pct` (%B)**: Indica onde o preço atual está em relação às Bandas de Bollinger. Um valor > 1.0 significa que o preço fechou acima da banda superior (movimento forte, talvez sobrecomprado). Um valor < 0 significa que fechou abaixo da banda inferior (movimento fraco, talvez sobrevendido).
+                ---
+                #### 📉 Indicadores de Volume (Intensidade da Negociação)
+                * **`volume_ratio_21d`**: Compara o volume de negociação de hoje com a média do último mês. Um valor > 1.0 indica um interesse excepcionalmente alto no ativo, o que pode validar um movimento de preço.
+                * **`obv_norm_21d` (On-Balance Volume Normalizado)**: É um total acumulado do volume, que aumenta em dias de alta e diminui em dias de baixa. Mede a pressão de compra e venda acumulada.
+                * **`cmf_20` (Chaikin Money Flow)**: Mede o fluxo de dinheiro para dentro ou para fora do ativo. Um valor positivo indica pressão compradora, enquanto um negativo indica pressão vendedora.
+                ---
+                #### 🌍 Indicadores de Mercado (Contexto)
+                * **`correlacao_ibov_20d`**: Mede o quão "em sintonia" o ativo está com o índice Ibovespa. Um valor próximo de +1 indica que ele tende a seguir o mercado; próximo de -1, que ele se move na direção oposta.
+                * **`ibov_acima_sma50`**: Um simples sinal (Sim/Não) que verifica se o mercado em geral (Ibovespa) está em uma tendência de médio prazo de alta. Um sinal de oportunidade no ativo pode ser mais forte se o mercado como um todo também estiver subindo.
+                """)
 
     def _render_glossario_metodologia(self):
         """ Renderiza a seção de glossário e metodologia com explicações dos termos técnicos usados."""
         with self.st.expander("Glossário: Entendendo os Termos Técnicos 📖"):
             self.st.markdown("""
-            - **Walk-Forward Validation (WFV):** A espinha dorsal da confiança neste modelo. Em vez de testar o modelo em dados que ele já 'espiou' durante o treino, o WFV simula a passagem do tempo: o modelo treina com dados do passado (ex: 2022) e é testado em dados do 'futuro' que ele nunca viu (ex: 2023). Isso resulta em uma estimativa de performance muito mais realista e confiável.
-            - **Sharpe Ratio:** A métrica mais importante para avaliar uma estratégia de investimento. Ela não mede apenas o retorno, mas o **retorno ajustado ao risco**. Um Sharpe Ratio alto (acima de 1.0 é excelente) significa que a estratégia gera bons retornos sem muita 'montanha-russa' no capital.
-            - **F1-Score:** Uma métrica de Machine Learning que mede o equilíbrio entre 'acertar as oportunidades' (precisão) e 'não deixar oportunidades passarem' (recall). É mais robusta que a simples acurácia em mercados financeiros, onde os eventos de alta podem ser mais raros.
-            - **Tripla Barreira:** O método usado para definir o que é um 'sucesso' ou 'fracasso'. Para cada dia, criamos três 'barreiras' no futuro (ex: 5 dias): uma de lucro (take profit), uma de perda (stop loss) e uma de tempo. O resultado da operação (alta, baixa ou neutro) é definido por qual barreira é tocada primeiro. Isso cria um alvo de previsão muito mais realista do que simplesmente 'o preço vai subir ou cair amanhã?'.
-            """)
+                - **Walk-Forward Validation (WFV):** A espinha dorsal da confiança neste modelo. Em vez de testar o modelo em dados que ele já 'espiou' durante o treino, o WFV simula a passagem do tempo: o modelo treina com dados do passado (ex: 2022) e é testado em dados do 'futuro' que ele nunca viu (ex: 2023). Isso resulta em uma estimativa de performance muito mais realista e confiável.
+                - **Sharpe Ratio:** A métrica mais importante para avaliar uma estratégia de investimento. Ela não mede apenas o retorno, mas o **retorno ajustado ao risco**. Um Sharpe Ratio alto (acima de 1.0 é excelente) significa que a estratégia gera bons retornos sem muita 'montanha-russa' no capital.
+                - **F1-Score:** Uma métrica de Machine Learning que mede o equilíbrio entre 'acertar as oportunidades' (precisão) e 'não deixar oportunidades passarem' (recall). É mais robusta que a simples acurácia em mercados financeiros, onde os eventos de alta podem ser mais raros.
+                - **Tripla Barreira:** O método usado para definir o que é um 'sucesso' ou 'fracasso'. Para cada dia, criamos três 'barreiras' no futuro (ex: 5 dias): uma de lucro (take profit), uma de perda (stop loss) e uma de tempo. O resultado da operação (alta, baixa ou neutro) é definido por qual barreira é tocada primeiro. Isso cria um alvo de previsão muito mais realista do que simplesmente 'o preço vai subir ou cair amanhã?'.
+                """)
         self.st.warning(
             "⚠️ **Aviso Legal:** Esta é uma ferramenta de estudo e análise baseada em modelos estatísticos. A performance passada não é garantia de resultados futuros. Isto **não** constitui uma recomendação de investimento.")
-
-    @staticmethod
-    def _calcular_indice_confiabilidade(metricas: Dict[str, Any]) -> tuple[int, int, str, str]:
-        score, max_score = 0, 9
-        sharpe = metricas.get('sharpe_medio', 0)
-        f1 = metricas.get('f1_macro_medio', 0)
-        trades = metricas.get('trades_medio', 0)
-        if sharpe > 1.0:
-            score += 3
-        elif sharpe > 0.3:
-            score += 2
-        elif sharpe > -0.1:
-            score += 1
-        if f1 > 0.65:
-            score += 3
-        elif f1 > 0.55:
-            score += 2
-        elif f1 > 0.50:
-            score += 1
-        if trades > 8:
-            score += 3
-        elif trades > 4:
-            score += 2
-        elif trades >= 2.5:
-            score += 1
-        if score >= 7: return score, max_score, "Alta Robustez", "green"
-        if score >= 4: return score, max_score, "Média Robustez", "orange"
-        return score, max_score, "Baixa Robustez", "red"
 
     def _exibir_metricas_backtest(self, metricas: Dict[str, Any]):
         self.st.subheader("Métricas de Performance da Simulação In-Sample")
         cols = self.st.columns(4)
-        cols[0].metric("Retorno Total", f"{metricas.get('retorno_total', 0):.2%}", help="O retorno percentual acumulado ao final de toda a simulação, assumindo que os lucros são reinvestidos.")
-        cols[1].metric("Sharpe Ratio", f"{metricas.get('sharpe', 0):.2f}", help="Mede o retorno ajustado ao risco. Acima de 1.0 é considerado excelente, pois indica que os retornos superam a volatilidade de forma consistente.")
-        cols[2].metric("Sortino Ratio", f"{metricas.get('sortino', 0):.2f}", help="Similar ao Sharpe, mas foca apenas no risco de perdas (volatilidade negativa). Um valor acima de 2.0 é excelente, pois indica boa proteção contra perdas.")
-        cols[3].metric("Nº de Trades", f"{metricas.get('trades', 0)}", help="Número total de operações de compra e venda executadas. Um número maior de trades (>50) confere maior robustez estatística aos resultados.")
+        cols[0].metric("Retorno Total", f"{metricas.get('retorno_total', 0):.2%}",
+                       help="O retorno percentual acumulado ao final de toda a simulação, assumindo que os lucros são reinvestidos.")
+        cols[1].metric("Sharpe Ratio", f"{metricas.get('sharpe', 0):.2f}",
+                       help="Mede o retorno ajustado ao risco. Acima de 1.0 é considerado excelente, pois indica que os retornos superam a volatilidade de forma consistente.")
+        cols[2].metric("Sortino Ratio", f"{metricas.get('sortino', 0):.2f}",
+                       help="Similar ao Sharpe, mas foca apenas no risco de perdas (volatilidade negativa). Um valor acima de 2.0 é excelente, pois indica boa proteção contra perdas.")
+        cols[3].metric("Nº de Trades", f"{metricas.get('trades', 0)}",
+                       help="Número total de operações de compra e venda executadas. Um número maior de trades (>50) confere maior robustez estatística aos resultados.")
         col_q1, col_q2, col_q3, col_q4 = self.st.columns(4)
-        col_q1.metric("Taxa de Acerto", f"{metricas.get('win_rate', 0):.2%}", help="Percentual de operações que resultaram em lucro. Um valor consistentemente acima de 50% é desejável.")
+        col_q1.metric("Taxa de Acerto", f"{metricas.get('win_rate', 0):.2%}",
+                      help="Percentual de operações que resultaram em lucro. Um valor consistentemente acima de 50% é desejável.")
         col_q2.metric("Profit Factor", f"{metricas.get('profit_factor', 0):.2f}",
                       help="Quanto o sistema ganhou para cada R$ 1 que perdeu. Ex: um fator de 2.0 significa que os lucros totais foram o dobro das perdas totais. Acima de 1.5 é bom.")
         col_q3.metric("Payoff Ratio", f"{metricas.get('payoff_ratio', 0):.2f}",
@@ -601,14 +617,15 @@ class DashboardView:
 
     def _render_secao_risco_capital(self, backtest_info):
         self.st.subheader("Análise de Risco e Capital (In-Sample)")
-        self.st.caption("Esta seção analisa visualmente a jornada do capital e os períodos de perdas ao longo da simulação completa.")
+        self.st.caption(
+            "Esta seção analisa visualmente a jornada do capital e os períodos de perdas ao longo da simulação completa.")
         col1, col2 = self.st.columns(2)
         with col1:
             self.st.plotly_chart(self._plot_equidade(backtest_info), use_container_width=True)
-            self.st.caption("Interpretação: A curva de equidade mostra a evolução do capital ao longo das operações. O ideal é uma tendência de alta constante com poucas quedas (drawdowns).")
+            self.st.caption(
+                "Interpretação: A curva de equidade mostra a evolução do capital ao longo das operações. O ideal é uma tendência de alta constante com poucas quedas (drawdowns).")
         with col2:
             self._plot_drawdown_curve(backtest_info)
-
 
     @staticmethod
     def _plot_precos_sinais(df_sinais, precos):
@@ -620,7 +637,7 @@ class DashboardView:
                 go.Scatter(x=sinais_operar.index, y=sinais_operar['preco'], mode='markers', name='Oportunidade',
                            marker=dict(color='limegreen', size=6, symbol='triangle-up')))
         fig.update_layout(title_text='Preços Históricos e Sinais Gerados na Simulação',
-                           legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+                          legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
         return fig
 
     @staticmethod
@@ -644,7 +661,8 @@ class DashboardView:
         fig.update_layout(title_text='Curva de Drawdown (Períodos de Perda)', xaxis_title='Nº da Operação',
                           yaxis_title='Queda do Pico', height=350)
         self.st.plotly_chart(fig, use_container_width=True)
-        self.st.caption("Interpretação: O gráfico de drawdown mostra os períodos de perda. O objetivo é ter 'vales' rasos e curtos, indicando que as perdas são pequenas e a recuperação é rápida.")
+        self.st.caption(
+            "Interpretação: O gráfico de drawdown mostra os períodos de perda. O objetivo é ter 'vales' rasos e curtos, indicando que as perdas são pequenas e a recuperação é rápida.")
 
     def _render_secao_sensibilidade(self, X_full, precos_full, ticker, modelo):
         with self.st.expander("Análise de Sensibilidade do Threshold de Operação"):
