@@ -1,0 +1,5 @@
+FastAPI
+yfinance
+uvicorn
+pydantic
+httpx
