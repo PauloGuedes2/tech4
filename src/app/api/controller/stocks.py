@@ -5,7 +5,7 @@ from src.app.schemas.stock import Stock
 router = APIRouter()
 yfinance_client = YFinanceClient()
 
-@router.get("/stocks/{symbol}", response_model=Stock)
+@router.get("/{symbol}", response_model=Stock)
 # Removido 'async' e adicionado o parâmetro de consulta 'date'
 def get_stock(
     symbol: str, 

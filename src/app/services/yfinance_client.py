@@ -28,7 +28,7 @@ class YFinanceClient:
             try:
                 start_dt = datetime.strptime(date, '%Y-%m-%d').date()
                 end_dt = start_dt + timedelta(days=1)
-                data = stock.history(start=date, end=end_dt.strftime('%Y-%M-%d'))
+                data = stock.history(start=date, end=end_dt.strftime('%Y-%m-%d'))
             except ValueError:
                 # Caso o formato da data esteja incorreto, retorna a última cotação (fallback).
                 data = stock.history(period="1d")
