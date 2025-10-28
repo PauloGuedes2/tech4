@@ -3,7 +3,7 @@ services:
   api:
     build:
       context: .              # O contexto é o diretório atual (tech4_feature_api)
-      dockerfile: DockerFile  # Aponta para o arquivo no diretório atual
+      dockerfile: Dockerfile  # Aponta para o arquivo no diretório atual
     container_name: fastapi-stock-api
     restart: unless-stopped
     ports:
