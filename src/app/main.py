@@ -3,7 +3,7 @@ import uvicorn
 from fastapi import FastAPI
 from logger.logger import logger
 
-from api.controller.stocks import router as stocks_router
+from src.app.api.controller.stocks import router as stocks_router
 
 app = FastAPI(
     title="Previsões das Cotações",
