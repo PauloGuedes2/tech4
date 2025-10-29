@@ -1,5 +1,13 @@
-FastAPI
+# API e Servidor
+fastapi
+uvicorn[standard]
+
+# Machine Learning e Dados
+tensorflow
+scikit-learn
+joblib
+
+# Análise de Dados e yfinance
+pandas
 yfinance
-uvicorn
-pydantic
-httpx
+numpy
