@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from config.params import Params
+from src.app.config.params import Params
 
 
 def get_logger(name: str):

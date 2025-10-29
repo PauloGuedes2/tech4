@@ -5,11 +5,11 @@ from typing import Tuple, Dict, Any
 from fastapi import HTTPException
 from pandas.tseries.offsets import BDay
 
-from config.params import Params
-from data.data_loader import DataLoader
-from logger.logger import logger
-from models.regression.regression_lstm import RegressaoLSTM
-from schemas.stock import Prediction
+from src.app.config.params import Params
+from src.app.data.data_loader import DataLoader
+from src.app.logger.logger import logger
+from src.app.models.regression.regression_lstm import RegressaoLSTM
+from src.app.schemas.stock import Prediction
 
 
 class PredictionService:

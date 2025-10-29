@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Path
 
-from schemas.stock import Prediction
-from services.prediction_service import PredictionService
+from src.app.schemas.stock import Prediction
+from src.app.services.prediction_service import PredictionService
 
 router = APIRouter()
 

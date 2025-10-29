@@ -7,8 +7,8 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import Tuple
 
-from config.params import Params
-from logger.logger import logger
+from src.app.config.params import Params
+from src.app.logger.logger import logger
 
 
 class DataLoader:

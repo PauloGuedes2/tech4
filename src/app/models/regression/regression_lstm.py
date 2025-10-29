@@ -10,8 +10,8 @@ from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 from tensorflow.keras.layers import LSTM, Dense, Dropout
 from tensorflow.keras.models import Sequential, load_model
 
-from config.params import Params  # Importa Params
-from logger.logger import logger
+from src.app.config.params import Params
+from src.app.logger.logger import logger
 
 
 class RegressaoLSTM:

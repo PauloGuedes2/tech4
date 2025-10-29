@@ -1,7 +1,7 @@
 import os
 import uvicorn
 from fastapi import FastAPI
-from logger.logger import logger
+from src.app.logger.logger import logger
 
 from src.app.api.controller.stocks import router as stocks_router
 

@@ -1,9 +1,9 @@
 import os
 
-from config.params import Params
-from data.data_loader import DataLoader
-from logger.logger import logger
-from models.regression.regression_lstm import RegressaoLSTM
+from src.app.config.params import Params
+from src.app.data.data_loader import DataLoader
+from src.app.logger.logger import logger
+from src.app.models.regression.regression_lstm import RegressaoLSTM
 
 
 def _processar_ticker(loader: DataLoader, ticker: str, path_modelos: str):
