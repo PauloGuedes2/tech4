@@ -1,11 +1,13 @@
 import os
 import re
 import sqlite3
-import pandas as pd
-import yfinance as yf
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import Tuple
+
+import pandas as pd
+import yfinance as yf
+from fastapi import HTTPException
 
 from src.app.config.params import Params
 from src.app.logger.logger import logger
@@ -90,14 +92,8 @@ class DataLoader:
         logger.info(f"Baixando dados para {ticker} - De: {start_str} até {end_str}")
 
         try:
-            # Tenta carregar do cache primeiro
-            df_cache = self.carregar_do_bd(ticker)
-            if not df_cache.empty:
-                logger.info(f"Dados carregados do cache local (BD) para {ticker}.")
-                # Simula df_ibov vazio por simplicidade, já que a API LSTM não o usa
-                return df_cache, pd.DataFrame()
-
-            logger.warning(f"Cache vazio para {ticker}. Baixando do yfinance...")
+            # 1. Tenta baixar do yfinance PRIMEIRO
+            logger.info(f"Tentando download atualizado para {ticker}...")
             dados_completos = yf.download(
                 tickers=f"{ticker} ^BVSP",
                 start=start_str,
@@ -109,17 +105,29 @@ class DataLoader:
             )
 
             if dados_completos.empty:
-                raise ValueError(f"Nenhum dado retornado para o ticker {ticker}.")
+                raise ValueError(f"Nenhum dado retornado do yfinance para o ticker {ticker}.")
 
             df_ticker, df_ibov = self._processar_dados_yfinance(dados_completos, ticker)
-            self.salvar_ohlcv(ticker, df_ticker)  # Salva no cache
 
-            logger.info(f"Dados baixados - {ticker}: {len(df_ticker)} registros")
+            # 2. Se baixou, ATUALIZA o cache
+            self.salvar_ohlcv(ticker, df_ticker)
+
+            logger.info(f"Dados atualizados e salvos no cache - {ticker}: {len(df_ticker)} registros")
             return df_ticker, df_ibov
 
         except Exception as e:
-            logger.error(f"Erro crítico ao baixar dados do yfinance para {ticker}: {e}")
-            raise
+            # 3. Se o download falhar, usa o cache como FALLBACK
+            logger.warning(f"Falha ao baixar dados do yfinance para {ticker}: {e}. Tentando carregar do cache local...")
+
+            df_cache = self.carregar_do_bd(ticker)
+            if not df_cache.empty:
+                logger.info(f"Dados carregados do cache (fallback) para {ticker}.")
+                # Simula df_ibov vazio
+                return df_cache, pd.DataFrame()
+            else:
+                # Erro crítico: Sem download e sem cache
+                logger.error(f"Erro crítico: Falha no download e cache vazio para {ticker}.")
+                raise HTTPException(status_code=503, detail=f"Serviço de dados indisponível e sem cache para {ticker}.")
 
     def salvar_ohlcv(self, ticker: str, df: pd.DataFrame):
         """Salva dados OHLCV no banco de dados."""
