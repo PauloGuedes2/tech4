@@ -20,9 +20,17 @@ services:
       - "3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
     environment:
       # Instala o plugin Infinity para conectar à API REST/JSON
       - GF_INSTALL_PLUGINS=yesoreyeram-infinity-datasource
+      # Configuração para acesso anônimo (Viewer)
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+      # Configuração para login universal de Admin (user: admin, senha: admin)
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
     networks:
       - grafana-api-net
 
