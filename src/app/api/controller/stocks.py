@@ -4,12 +4,13 @@ from typing import List
 from src.app.schemas.stock import Prediction
 from src.app.services.prediction_service import PredictionService
 
-router = APIRouter()
+# [CORREÇÃO]: O parâmetro 'tags' define o título da seção no Swagger UI
+router = APIRouter(tags=[""]) 
 
 prediction_service = PredictionService()
 
 
-@router.get("/previsao/{acao}", response_model=Prediction)
+@router.get("/{acao}", response_model=Prediction)
 def get_stock_prediction(
         acao: str = Path(
             ...,
@@ -24,10 +25,8 @@ def get_stock_prediction(
     """
     return prediction_service.get_prediction_for_ticker(acao)
 
-# [NOVO ENDPOINT]
 @router.get(
     "/historico/{acao}", 
-    # O endpoint retorna uma lista de previsões (os 7 dias)
     response_model=List[Prediction] 
 )
 def get_stock_historical_prediction(
@@ -39,9 +38,8 @@ def get_stock_historical_prediction(
         )
 ):
     """
-    Retorna o histórico das PREVISÕES dos últimos 7 dias úteis, 
+    Retorna uma sequência de PREVISÕES para os últimos 7 dias úteis, 
     rodando o modelo novamente com os dados disponíveis antes de cada dia.
     Atenção: O campo 'name' no retorno inclui o Preço Real para comparação.
     """
-    # Chama o novo método do service com days=7 fixo
     return prediction_service.get_historical_prediction_for_ticker(acao, days=7)
