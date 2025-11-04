@@ -24,7 +24,7 @@ router = APIRouter(tags=["Previsões de Ações"])
 prediction_service = PredictionService()
 
 
-@router.get("/{acao}", response_model=Prediction)
+@router.get("/previsao/{acao}", response_model=Prediction)
 # [MODIFICADO] 2. Mudar o tipo do parâmetro 'acao' para o Enum
 def get_stock_prediction(
         acao: StockTickerOptions = Path(
