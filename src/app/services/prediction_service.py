@@ -1,9 +1,12 @@
 import json
 import os
-from typing import Tuple, Dict, Any
+# [MODIFICADO] Adicionar 'List'
+from typing import Tuple, Dict, Any, List 
 
 from fastapi import HTTPException
 from pandas.tseries.offsets import BDay
+# [NOVO] Importar pandas
+import pandas as pd 
 
 from src.app.config.params import Params
 from src.app.data.data_loader import DataLoader
@@ -22,14 +25,14 @@ class PredictionService:
         self.base_path = Params.PATH_MODELOS_LSTM
         logger.info(f"PredictionService inicializado. Modelos em: {self.base_path}")
 
-    @staticmethod
-    def _formatar_ticker(acao: str) -> str:
+    # [CORREÇÃO APLICADA]: Removido o @staticmethod para evitar AttributeError
+    def _formatar_ticker(self, acao: str) -> str:
         """Ajusta o ticker para o formato do yfinance (.SA)."""
         acao_upper = acao.upper()
         if acao_upper.endswith(('3', '4', '11')) and not acao_upper.endswith('.SA'):
             return acao_upper + '.SA'
         return acao_upper
-
+        
     def _carregar_artefatos_modelo(self, ticker_model: str) -> Tuple[RegressaoLSTM, Dict[str, Any]]:
         """
         Carrega o modelo, scaler e métricas do disco.Lança HTTPException em caso de falha. (SRP: Responsável apenas por carregar artefatos)
@@ -102,3 +105,87 @@ class PredictionService:
             RMSE=metrics.get('rmse'),
             MAPE=metrics.get('mape')
         )
+        
+    # [NOVO MÉTODO PRIVADO] Para gerar as previsões históricas (comparando)
+    def _gerar_previsoes_historicas(self, modelo_lstm: RegressaoLSTM, ticker_model: str, steps: int) -> List[Dict[str, Any]]:
+        """
+        Busca dados recentes e executa N previsões históricas, comparando com o valor real.
+        steps = 7 para os últimos 7 dias úteis.
+        """
+        try:
+            # Baixa os dados recentes.
+            df_ticker, _ = self.loader.baixar_dados_yf(ticker_model, periodo=Params.PERIODO_DADOS)
+
+            # Ajusta para ter certeza de que há dados suficientes para os últimos 'steps' dias + o look_back do modelo
+            if df_ticker.empty or len(df_ticker) < modelo_lstm.look_back + steps:
+                logger.warning(f"Dados insuficientes para histórico de {steps} dias em {ticker_model}")
+                raise ValueError(f"Dados insuficientes para prever {steps} dias do histórico")
+
+            results = []
+            
+            # Loop reverso: i=1 é a previsão para o dia mais recente, i=steps é para o dia mais antigo.
+            for i in range(1, steps + 1):
+                # 1. Dados para a Previsão: Pegamos todos os dados EXCETO os últimos 'i' dias.
+                # Isso simula o conhecimento que o modelo teria *antes* do dia atual.
+                df_historico_truncado = df_ticker.iloc[:-i] 
+
+                # 2. Dia Real da Previsão: O dia que estamos tentando prever (fechamento real)
+                dia_a_prever = df_ticker.index[-i] 
+                preco_real = df_ticker['Close'].iloc[-i]
+
+                # 3. Gera a previsão usando apenas o histórico truncado
+                predicted_price = modelo_lstm.prever(df_historico_truncado) 
+
+                # 4. Adiciona o resultado
+                results.append({
+                    'prediction_date': dia_a_prever.strftime('%Y-%m-%d'),
+                    'predicted_price': predicted_price,
+                    'actual_price': preco_real
+                })
+
+            # Retorna em ordem cronológica (do mais antigo ao mais recente)
+            return results[::-1]
+
+        except Exception as e:
+            logger.error(f"Erro durante a predição histórica para {ticker_model}: {e} ", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Erro ao processar dados ou gerar previsão histórica: {e}")
+
+    # [NOVO MÉTODO PÚBLICO] Para a rota /historico/{acao}
+    def get_historical_prediction_for_ticker(self, acao: str, days: int) -> List[Prediction]:
+        """
+        Orquestra o processo de previsão histórica (N dias úteis) para um ticker.
+        Compara a previsão (se fosse feita) com o valor real.
+        """
+        # 1. Formatar o Ticker
+        ticker_model = self._formatar_ticker(acao)
+        logger.info(f"Requisição histórica para: {acao.upper()} (Modelo: {ticker_model}), {days} dias")
+
+        # 2. Carregar Modelo e Métricas
+        modelo_lstm, metrics = self._carregar_artefatos_modelo(ticker_model)
+
+        # 3. Gerar Previsões Históricas
+        predictions_raw = self._gerar_previsoes_historicas(modelo_lstm, ticker_model, days)
+
+        # 4. Formatar e retornar a resposta
+        results: List[Prediction] = []
+        
+        # Obtém as métricas do modelo uma vez
+        mae = metrics.get('mae')
+        rmse = metrics.get('rmse')
+        mape = metrics.get('mape')
+
+        for data in predictions_raw:
+            # Incluindo o preço real no campo 'name' para comparação:
+            comparison_name = f"Prev. Histórica - Preço Real: R$ {data['actual_price']:.2f}"
+            
+            results.append(Prediction(
+                symbol=acao.upper(),
+                name=comparison_name,
+                predicted_price=data['predicted_price'],
+                prediction_date=data['prediction_date'],
+                MAE=mae, 
+                RMSE=rmse,
+                MAPE=mape
+            ))
+            
+        return results
