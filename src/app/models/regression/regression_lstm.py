@@ -11,6 +11,7 @@ from tensorflow.keras.layers import LSTM, Dense, Dropout
 from tensorflow.keras.models import Sequential, load_model
 
 from src.app.config.params import Params
+from src.app.data.metrics_db import MetricsDB
 from src.app.logger.logger import logger
 
 
@@ -165,6 +166,9 @@ class RegressaoLSTM:
             json.dump(self.evaluation_metrics, f, indent=4)
 
         logger.info(f"Artefatos para {ticker} salvos em: {base_path}")
+
+        db = MetricsDB()
+        db.salvar_metricas(ticker, self.evaluation_metrics.get('mae'), self.evaluation_metrics.get('rmse'), self.evaluation_metrics.get('mape'))
 
     @classmethod
     def carregar_artefatos(cls, ticker: str, base_path: str):

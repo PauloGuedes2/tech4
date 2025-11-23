@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   # Serviço da API FastAPI
   api:
@@ -22,13 +24,14 @@ services:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
       - ./grafana/dashboards:/var/lib/grafana/dashboards
+
+      # Banco SQLite
+      - E:/Users/lucas/PycharmProjects/tech4/src/app/dados/dados_mercado.db:/var/lib/grafana/dados_mercado.db
+
     environment:
-      # Instala o plugin Infinity para conectar à API REST/JSON
-      - GF_INSTALL_PLUGINS=yesoreyeram-infinity-datasource
-      # Configuração para acesso anônimo (Viewer)
+      - GF_INSTALL_PLUGINS=frser-sqlite-datasource
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
-      # Configuração para login universal de Admin (user: admin, senha: admin)
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
     networks:
