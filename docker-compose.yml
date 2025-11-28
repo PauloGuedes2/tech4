@@ -26,7 +26,7 @@ services:
       - ./grafana/dashboards:/var/lib/grafana/dashboards
 
       # Banco SQLite
-      - E:/Users/lucas/PycharmProjects/tech4/src/app/dados/dados_mercado.db:/var/lib/grafana/dados_mercado.db
+      - ./src/app/dados/dados_mercado.db:/var/lib/grafana/dados_mercado.db
 
     environment:
       - GF_INSTALL_PLUGINS=frser-sqlite-datasource
