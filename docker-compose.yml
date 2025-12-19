@@ -4,12 +4,12 @@ services:
   # Serviço da API FastAPI
   api:
     build:
-      context: .              # O contexto é o diretório atual (tech4_feature_api)
-      dockerfile: Dockerfile  # Aponta para o arquivo no diretório atual
+      context: .
+      dockerfile: Dockerfile
     container_name: fastapi-stock-api
     restart: unless-stopped
     ports:
-      - "8000:8000" # Porta da API
+      - "8000:8000"
     networks:
       - grafana-api-net
 
@@ -34,6 +34,20 @@ services:
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - grafana-api-net
+
+  # 🔥 Serviço do Prometheus
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
     networks:
       - grafana-api-net
 
