@@ -1,0 +1,45 @@
+version: "3.9"
+
+services:
+  # Serviço da API FastAPI
+  api:
+    build:
+      context: .              # O contexto é o diretório atual (tech4_feature_api)
+      dockerfile: Dockerfile  # Aponta para o arquivo no diretório atual
+    container_name: fastapi-stock-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000" # Porta da API
+    networks:
+      - grafana-api-net
+
+  # Serviço do Grafana
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+
+      # Banco SQLite
+      - ./src/app/dados/dados_mercado.db:/var/lib/grafana/dados_mercado.db
+
+    environment:
+      - GF_INSTALL_PLUGINS=frser-sqlite-datasource
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - grafana-api-net
+
+volumes:
+  grafana-data:
+
+networks:
+  grafana-api-net:
+    driver: bridge
