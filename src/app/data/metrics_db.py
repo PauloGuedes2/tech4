@@ -1,66 +1,41 @@
-import os
 import sqlite3
-from contextlib import contextmanager
+import os
 from src.app.config.params import Params
 from src.app.logger.logger import logger
 
-
 class MetricsDB:
-
-    def __init__(self, db_path: str = None):
-        self.db_path = db_path or Params.PATH_DB_MERCADO
+    def __init__(self):
+        self.db_path = Params.PATH_DB_MERCADO
+        # Garante que a pasta existe antes de criar o BD
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         self._criar_tabela()
 
-    @contextmanager
-    def _conexao(self):
-        conn = sqlite3.connect(self.db_path)
-        try:
-            yield conn
-        finally:
-            conn.close()
-
     def _criar_tabela(self):
-        with self._conexao() as conn:
+        with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
+            # Tabela atualizada com a coluna 'versao'
             cursor.execute("""
-                CREATE TABLE IF NOT EXISTS metrics (
-                    ticker TEXT PRIMARY KEY,
+                CREATE TABLE IF NOT EXISTS metricas_lstm (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ticker TEXT,
+                    versao TEXT,
                     mae REAL,
                     rmse REAL,
                     mape REAL,
-                    created_at TEXT
+                    data_treino TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
             conn.commit()
-        logger.info("Tabela 'metrics' verificada/criada com sucesso.")
 
-    def salvar_metricas(self, ticker: str, mae: float, rmse: float, mape: float):
-        with self._conexao() as conn:
-            conn.execute("""
-                INSERT OR REPLACE INTO metrics (ticker, mae, rmse, mape, created_at)
-                VALUES (?, ?, ?, ?, datetime('now'))
-            """, (ticker, mae, rmse, mape))
-            conn.commit()
-
-        logger.info(f"Métricas armazenadas no banco - {ticker}: MAE={mae:.4f}, RMSE={rmse:.4f}, MAPE={mape:.2f}%")
-
-    def carregar_metricas(self, ticker: str):
-        with self._conexao() as conn:
-            cursor = conn.execute("""
-                SELECT mae, rmse, mape, created_at
-                FROM metrics
-                WHERE ticker = ?
-            """, (ticker,))
-            row = cursor.fetchone()
-
-        if row:
-            mae, rmse, mape, created_at = row
-            return {
-                "ticker": ticker,
-                "mae": mae,
-                "rmse": rmse,
-                "mape": mape,
-                "created_at": created_at,
-            }
-        return None
+    def salvar_metricas(self, ticker, versao, mae, rmse, mape):
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO metricas_lstm (ticker, versao, mae, rmse, mape)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (ticker, versao, mae, rmse, mape))
+                conn.commit()
+            logger.info(f"📊 Métricas armazenadas no banco - {ticker} ({versao}): MAE={mae:.4f}")
+        except Exception as e:
+            logger.error(f"❌ Erro ao salvar métricas no BD: {e}")
