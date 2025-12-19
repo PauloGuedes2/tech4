@@ -21,7 +21,7 @@ class MetricsDB:
     def _criar_tabela(self):
         with self._conexao() as conn:
             cursor = conn.cursor()
-            # O uso de AUTOINCREMENT permite guardar múltiplos treinos do mesmo ticker
+            # O 'id' como PK permite múltiplas entradas para o mesmo ticker (v1, v2, v3...)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS metrics (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,10 +34,11 @@ class MetricsDB:
                 )
             """)
             conn.commit()
-        logger.info("Tabela 'metrics' verificada/criada com sucesso.")
+        logger.info("Tabela 'metrics' preparada para histórico.")
 
     def salvar_metricas(self, ticker: str, versao: str, mae: float, rmse: float, mape: float):
         with self._conexao() as conn:
+            # INSERT sem REPLACE para não apagar as versões anteriores
             conn.execute("""
                 INSERT INTO metrics (ticker, versao, mae, rmse, mape, created_at)
                 VALUES (?, ?, ?, ?, ?, datetime('now'))

@@ -8,6 +8,7 @@ from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 from tensorflow.keras.layers import LSTM, Dense, Dropout
 from tensorflow.keras.models import Sequential, load_model
+
 from src.app.config.params import Params
 from src.app.data.metrics_db import MetricsDB
 from src.app.logger.logger import logger
@@ -46,21 +47,35 @@ class RegressaoLSTM:
             Dense(1)
         ])
         self.model.compile(optimizer='adam', loss='mean_squared_error')
+        logger.info("Modelo LSTM construído.")
 
     def treinar(self, df_precos: pd.DataFrame, ticker: str, path_modelos: str, epochs=100, batch_size=32):
         X_train, y_train, X_val, y_val, X_test, y_test = self._preparar_dados(df_precos)
-        if self.model is None: self.construir_modelo((X_train.shape[1], 1))
+        if self.model is None: 
+            self.construir_modelo((X_train.shape[1], 1))
+        
         caminho_melhor = os.path.join(path_modelos, f"best_model_lstm_{ticker}.keras")
         checkpoint = ModelCheckpoint(caminho_melhor, monitor='val_loss', save_best_only=True, verbose=0)
         stop = EarlyStopping(monitor='val_loss', patience=10)
-        self.model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_val, y_val), callbacks=[checkpoint, stop], verbose=0)
+
+        self.model.fit(
+            X_train, y_train, 
+            epochs=epochs, 
+            batch_size=batch_size, 
+            validation_data=(X_val, y_val), 
+            callbacks=[checkpoint, stop], 
+            verbose=0
+        )
+        
         self.model = load_model(caminho_melhor)
+        # Passa o ticker para o método avaliar para evitar NameError
         self.avaliar(X_test, y_test, ticker)
 
     def avaliar(self, X_test, y_test, ticker: str):
         preds = self.model.predict(X_test)
         y_real = self.scaler.inverse_transform(y_test.reshape(-1, 1))
         p_real = self.scaler.inverse_transform(preds)
+        
         self.evaluation_metrics = {
             "mae": float(mean_absolute_error(y_real, p_real)),
             "rmse": float(np.sqrt(mean_squared_error(y_real, p_real))),
@@ -74,15 +89,26 @@ class RegressaoLSTM:
         return float(self.scaler.inverse_transform(self.model.predict(X_pred))[0][0])
 
     def salvar_artefatos(self, ticker: str, base_path: str):
+        """Salva arquivos no disco e as métricas no banco de dados."""
         self.model.save(os.path.join(base_path, f"modelo_lstm_{ticker}.keras"))
         dump(self.scaler, os.path.join(base_path, f"scaler_lstm_{ticker}.joblib"))
+        
         with open(os.path.join(base_path, f"metrics_lstm_{ticker}.json"), 'w') as f:
             json.dump(self.evaluation_metrics, f)
         
-        # Identifica a versão pela pasta final do caminho
+        # Identifica a versão (ex: v1, v2) pelo nome da pasta final
         nome_versao = os.path.basename(os.path.normpath(base_path))
+        
         db = MetricsDB()
-        db.salvar_metricas(ticker, nome_versao, self.evaluation_metrics['mae'], self.evaluation_metrics['rmse'], self.evaluation_metrics['mape'])
+        # Envia a versão correta para persistência no banco de dados
+        db.salvar_metricas(
+            ticker, 
+            nome_versao, 
+            self.evaluation_metrics['mae'], 
+            self.evaluation_metrics['rmse'], 
+            self.evaluation_metrics['mape']
+        )
+        logger.info(f"Artefatos e métricas da {nome_versao} salvos para {ticker}.")
 
     @classmethod
     def carregar_artefatos(cls, ticker: str, base_path: str):
