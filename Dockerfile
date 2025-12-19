@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ ./src/
 
 # Expõe a porta que o Uvicorn irá usar
-EXPOSE 8000
+EXPOSE 8000 3000
 
 # Comando para rodar a aplicação com Uvicorn
 # O módulo principal é 'src.app.main' e a instância do FastAPI é 'app'
