@@ -1,6 +1,6 @@
 import os
 from typing import List
-
+from pathlib import Path
 
 class Params:
     """
@@ -10,23 +10,27 @@ class Params:
     PERIODO_DADOS: str = "3y"
     INTERVALO_DADOS: str = "1d"
 
-    # Lista de tickers a serem treinados (deve corresponder aos modelos salvos)
+    # Lista de tickers a serem treinados
     TICKERS: List[str] = [
         "ITSA4.SA", "VALE3.SA", "TAEE11.SA", "PETR4.SA", "MGLU3.SA"
     ]
 
     # --- Configurações do Modelo ---
-    LOOK_BACK: int = 60  # Parâmetro de look_back do LSTM
+    LOOK_BACK: int = 60
 
     # --- Configurações de Paths ---
-    # Define o caminho raiz do projeto
-    PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # Define a raiz do projeto de forma robusta subindo 3 níveis:
+    # (src/app/config/params.py -> src/app/config -> src/app -> src)
+    BASE_DIR = Path(__file__).resolve().parent.parent.parent
+    
+    # Caminhos absolutos corrigidos para evitar "src/src" no Render
+    # No Render, a estrutura de montagem deve alinhar-se com estes caminhos
+    PATH_DB_MERCADO: str = os.path.join(BASE_DIR, "app", "dados", "dados_mercado.db")
+    PATH_MODELOS_LSTM: str = os.path.join(BASE_DIR, "app", "modelos_treinados_lstm")
 
-    PATH_DB_MERCADO: str = os.path.join(PROJECT_ROOT, "dados",
-                                        "dados_mercado.db")
-
-    # Caminho onde os modelos LSTM e artefatos (scalers, metrics) são salvos
-    PATH_MODELOS_LSTM: str = os.path.join(PROJECT_ROOT, "modelos_treinados_lstm")
+    # Garante a criação dos diretórios necessários ao carregar os parâmetros
+    os.makedirs(os.path.dirname(PATH_DB_MERCADO), exist_ok=True)
+    os.makedirs(PATH_MODELOS_LSTM, exist_ok=True)
 
     # --- Configurações de Logging ---
     LOG_LEVEL: str = "INFO"
