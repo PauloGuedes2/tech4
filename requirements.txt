@@ -9,11 +9,9 @@ joblib
 
 # Análise de Dados e yfinance
 pandas
-yfinance>=0.2.50
+yfinance>=0.2.40
 numpy
 requests
-curl_cffi
-multitasking
 
 # Metricas
 prometheus-client
