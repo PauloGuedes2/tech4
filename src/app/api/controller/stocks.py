@@ -34,6 +34,6 @@ def get_history(acao: StockTickerOptions = Path(...), versao: str = Query("v1"))
     return service.get_historical_prediction_for_ticker(acao.value, days=7, versao=versao)
 
 @router.post("/retreinar")
-async def retrain(bt: BackgroundTasks, epochs: int = 10, batch: int = 32):
+async def retrain(bt: BackgroundTasks, epochs: int = 100, batch: int = 32):
     bt.add_task(treinar_modelos_lstm, epochs=epochs, batch_size=batch)
     return {"status": "Treinamento iniciado em segundo plano"}
