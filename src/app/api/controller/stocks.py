@@ -1,64 +1,39 @@
-from fastapi import APIRouter, Path
-from typing import List 
-# [NOVO] Importar Enum
-from enum import Enum 
-
+import os
+from enum import Enum
+from fastapi import APIRouter, Path, Query, BackgroundTasks
+from typing import List
 from src.app.schemas.stock import Prediction
 from src.app.services.prediction_service import PredictionService
+from src.app.train_lstm import treinar_modelos_lstm
+from src.app.config.params import Params
 
-# [NOVO] 1. Definir o Enum com os tickers permitidos
 class StockTickerOptions(str, Enum):
-    """
-    Define a lista de tickers disponíveis para seleção.
-    A herança de 'str' garante que o valor passado para a rota será uma string.
-    """
     vale3 = "VALE3"
     petr4 = "PETR4"
     itsa4 = "ITSA4"
     mglu3 = "MGLU3"
     taee11 = "TAEE11"
 
+def listar_versoes():
+    base = Params.PATH_MODELOS_LSTM
+    if not os.path.exists(base): return ["v1"]
+    v = [d for d in os.listdir(base) if d.startswith('v')]
+    v.sort(key=lambda x: int(x[1:]) if x[1:].isdigit() else 0)
+    return v if v else ["v1"]
 
-router = APIRouter(tags=["Previsões de Ações"]) 
-
-prediction_service = PredictionService()
-
+router = APIRouter(tags=["Stocks"])
+service = PredictionService()
 
 @router.get("/previsao/{acao}", response_model=Prediction)
-# [MODIFICADO] 2. Mudar o tipo do parâmetro 'acao' para o Enum
-def get_stock_prediction(
-        acao: StockTickerOptions = Path(
-            ...,
-            title="Código da ação",
-            description="Código/ticker da ação (Selecione uma opção).",
-            # O campo 'example' continua útil para a sugestão
-            example=StockTickerOptions.vale3.value 
-        )
-):
-    """
-    Retorna a PREVISÃO de preço de fechamento para o próximo dia útil
-    para uma determinada ação, junto com as métricas de avaliação do modelo.
-    """
-    # 3. Usar acao.value para obter a string 'VALE3', 'PETR4', etc.
-    return prediction_service.get_prediction_for_ticker(acao.value)
+def get_prediction(acao: StockTickerOptions = Path(...), versao: str = Query("v1")):
+    """Atualize a página (F5) para ver novas versões detetadas: {listar_versoes()}"""
+    return service.get_prediction_for_ticker(acao.value, versao=versao)
 
-@router.get(
-    "/historico/{acao}", 
-    response_model=List[Prediction] 
-)
-# [MODIFICADO] 2. Mudar o tipo do parâmetro 'acao' para o Enum
-def get_stock_historical_prediction(
-        acao: StockTickerOptions = Path(
-            ...,
-            title="Código da ação",
-            description="Código/ticker da ação (Selecione uma opção).",
-            example=StockTickerOptions.vale3.value 
-        )
-):
-    """
-    Retorna uma sequência de PREVISÕES para os últimos 7 dias úteis, 
-    rodando o modelo novamente com os dados disponíveis antes de cada dia.
-    Atenção: O campo 'name' no retorno inclui o Preço Real para comparação.
-    """
-    # 3. Usar acao.value para obter a string
-    return prediction_service.get_historical_prediction_for_ticker(acao.value, days=7)
+@router.get("/historico/{acao}", response_model=List[Prediction])
+def get_history(acao: StockTickerOptions = Path(...), versao: str = Query("v1")):
+    return service.get_historical_prediction_for_ticker(acao.value, days=7, versao=versao)
+
+@router.post("/retreinar")
+async def retrain(bt: BackgroundTasks, epochs: int = 100, batch: int = 32):
+    bt.add_task(treinar_modelos_lstm, epochs=epochs, batch_size=batch)
+    return {"status": "Treinamento iniciado em segundo plano"}
