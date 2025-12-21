@@ -9,8 +9,9 @@ joblib
 
 # Análise de Dados e yfinance
 pandas
-yfinance
+yfinance>=0.2.40
 numpy
+requests
 
-#metricas
+# Metricas
 prometheus-client

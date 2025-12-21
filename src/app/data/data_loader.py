@@ -1,6 +1,7 @@
 import os
 import re
 import sqlite3
+import requests  # Adicionado para gerenciar a sessão HTTP
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import Tuple
@@ -70,7 +71,7 @@ class DataLoader:
     def baixar_dados_yf(self, ticker: str, periodo: str = None,
                         intervalo: str = None) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """
-        Baixa dados do yfinance  de forma robusta, especificando datas.
+        Baixa dados do yfinance de forma robusta, especificando datas e usando sessão HTTP.
         """
         intervalo = intervalo or Params.INTERVALO_DADOS
         periodo_config = periodo or Params.PERIODO_DADOS
@@ -92,7 +93,12 @@ class DataLoader:
         logger.info(f"Baixando dados para {ticker} - De: {start_str} até {end_str}")
 
         try:
-            # 1. Tenta baixar do yfinance PRIMEIRO
+            # 1. Configura sessão para evitar erro de "Impersonating chrome" no Render
+            session = requests.Session()
+            session.headers.update({
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            })
+
             logger.info(f"Tentando download atualizado para {ticker}...")
             dados_completos = yf.download(
                 tickers=f"{ticker} ^BVSP",
@@ -101,10 +107,11 @@ class DataLoader:
                 interval=intervalo,
                 progress=False,
                 auto_adjust=True,
-                timeout=30
+                timeout=30,
+                session=session  # Força o uso da sessão configurada
             )
 
-            if dados_completos.empty:
+            if dados_completos.empty or ticker not in dados_completos['Close']:
                 raise ValueError(f"Nenhum dado retornado do yfinance para o ticker {ticker}.")
 
             df_ticker, df_ibov = self._processar_dados_yfinance(dados_completos, ticker)
@@ -122,17 +129,14 @@ class DataLoader:
             df_cache = self.carregar_do_bd(ticker)
             if not df_cache.empty:
                 logger.info(f"Dados carregados do cache (fallback) para {ticker}.")
-                # Simula df_ibov vazio
                 return df_cache, pd.DataFrame()
             else:
-                # Erro crítico: Sem download e sem cache
                 logger.error(f"Erro crítico: Falha no download e cache vazio para {ticker}.")
                 raise HTTPException(status_code=503, detail=f"Serviço de dados indisponível e sem cache para {ticker}.")
 
     def salvar_ohlcv(self, ticker: str, df: pd.DataFrame):
         """Salva dados OHLCV no banco de dados."""
         with self._conexao() as conn:
-            # Converte o índice (data) para uma coluna
             df_para_salvar = df.reset_index()
 
             for _, linha in df_para_salvar.iterrows():
@@ -173,5 +177,4 @@ class DataLoader:
             'volume': 'Volume'
         })
 
-        # Agora esta linha vai funcionar
         return df[["Open", "High", "Low", "Close", "Volume"]]
