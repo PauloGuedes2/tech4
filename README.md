@@ -170,59 +170,42 @@ python src/app/train_lstm.py
 
 ```mermaid
 flowchart TD
-    Start([Training Pipeline Start]) --> DataCollection[Data Collection<br/>Yahoo Finance API<br/>3 Years Historical Data]
-    
-    DataCollection --> CacheStorage[Cache Storage<br/>SQLite Database<br/>Local Persistence]
-    
-    CacheStorage --> DataPrep[Data Preprocessing<br/>MinMax Normalization<br/>Sequence Generation]
-    
-    DataPrep --> DataSplit[Dataset Split<br/>Training: 80%<br/>Validation: 20%]
-    
-    DataSplit --> ModelInit[Model Initialization<br/>LSTM Architecture<br/>3 Layers + Dropout]
-    
-    ModelInit --> Training[Model Training<br/>Optimizer: Adam<br/>Loss: MSE<br/>Early Stopping]
-    
-    Training --> Evaluation[Model Evaluation<br/>MAE, RMSE, MAPE<br/>Performance Metrics]
-    
-    Evaluation --> Persistence[Artifact Persistence]
-    
-    Persistence --> ModelArtifact[Model File<br/>modelo_lstm_{ticker}.keras]
-    Persistence --> ScalerArtifact[Scaler File<br/>scaler_lstm_{ticker}.joblib]
-    Persistence --> MetricsArtifact[Metrics File<br/>metrics_lstm_{ticker}.json]
-    
-    ModelArtifact --> Complete([Pipeline Complete])
+    Start(("Início do Treinamento")) --> DataCollection["Data Collection<br/>Yahoo Finance API<br/>3 Years Historical Data"]
+    DataCollection --> CacheStorage["Cache Storage<br/>SQLite Database<br/>Local Persistence"]
+    CacheStorage --> DataPrep["Data Preprocessing<br/>MinMax Normalization<br/>Sequence Generation"]
+    DataPrep --> DataSplit["Dataset Split<br/>Training: 80%<br/>Validation: 20%"]
+    DataSplit --> ModelInit["Model Initialization<br/>LSTM Architecture<br/>3 Layers + Dropout"]
+    ModelInit --> Training["Model Training<br/>Optimizer: Adam<br/>Loss: MSE<br/>Early Stopping"]
+    Training --> Evaluation["Model Evaluation<br/>MAE, RMSE, MAPE<br/>Performance Metrics"]
+    Evaluation --> Persistence["Artifact Persistence"]
+
+    Persistence --> ModelArtifact["Model File<br/>modelo_lstm_&#123;ticker&#125;.keras"]
+    Persistence --> ScalerArtifact["Scaler File<br/>scaler_lstm_&#123;ticker&#125;.joblib"]
+    Persistence --> MetricsArtifact["Metrics File<br/>metrics_lstm_&#123;ticker&#125;.json"]
+
+    ModelArtifact --> Complete(("Pipeline Complete"))
     ScalerArtifact --> Complete
     MetricsArtifact --> Complete
-    
+
     subgraph "Data Pipeline"
         DataCollection
         CacheStorage
         DataPrep
         DataSplit
     end
-    
+
     subgraph "ML Pipeline"
         ModelInit
         Training
         Evaluation
     end
-    
+
     subgraph "Artifact Management"
         Persistence
         ModelArtifact
         ScalerArtifact
         MetricsArtifact
     end
-    
-    classDef startEnd fill:#e8f5e8,stroke:#4caf50,stroke-width:3px
-    classDef dataNodes fill:#e3f2fd,stroke:#2196f3,stroke-width:2px
-    classDef mlNodes fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
-    classDef artifactNodes fill:#fff3e0,stroke:#ff9800,stroke-width:2px
-    
-    class Start,Complete startEnd
-    class DataCollection,CacheStorage,DataPrep,DataSplit dataNodes
-    class ModelInit,Training,Evaluation mlNodes
-    class Persistence,ModelArtifact,ScalerArtifact,MetricsArtifact artifactNodes
 ```
 
 3. **Neural Network Architecture**
