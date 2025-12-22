@@ -9,7 +9,8 @@ joblib
 
 # Análise de Dados e yfinance
 pandas
-yfinance
+yfinance==0.2.36
+curl_cffi==0.6.2
 numpy
 
 #metricas

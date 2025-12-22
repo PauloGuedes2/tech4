@@ -12,6 +12,7 @@ from fastapi import HTTPException
 from src.app.config.params import Params
 from src.app.logger.logger import logger
 
+os.environ["YF_DISABLE_IMPERSONATION"] = "1"
 
 class DataLoader:
     """
@@ -93,6 +94,7 @@ class DataLoader:
 
         try:
             # 1. Tenta baixar do yfinance PRIMEIRO
+            yf.set_tz_cache_location("/tmp/yf_cache")
             logger.info(f"Tentando download atualizado para {ticker}...")
             dados_completos = yf.download(
                 tickers=f"{ticker} ^BVSP",
