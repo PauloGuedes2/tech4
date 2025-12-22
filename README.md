@@ -168,63 +168,105 @@ python src/app/train_lstm.py
 
 ### **Pipeline de Treinamento**
 
-```mermaid 
+```mermaid
 flowchart TD
-    Start(("Início do Treinamento")) --> Download["Download Dados - Yahoo Finance (3 anos)"]
-    Download --> Cache["Salvar no SQLite"]
-    Cache --> Prepare["Preparar Dados: Normalização e Sequências"]
-    Prepare --> Split["Train/Val Split 80% / 20%"]
-    Split --> Model["Criar Modelo LSTM - 3 camadas + Dropout"]
-    Model --> Train["Treinamento - Adam + MSE + EarlyStopping"]
-    Train --> Evaluate["Avaliação - MAE, RMSE, MAPE"]
-    Evaluate --> Save["Salvar Artefatos"]
-    Save --> ModelFile["modelo_lstm_ticker.keras"]
-    Save --> ScalerFile["scaler_lstm_ticker.joblib"]
-    Save --> MetricsFile["metrics_lstm_ticker.json"]
-    ModelFile --> End(("Concluído"))
-    ScalerFile --> End
-    MetricsFile --> End
-
-    subgraph Data_Processing["Data Processing"]
-        Download
-        Cache
-        Prepare
-        Split
+    Start([Training Pipeline Start]) --> DataCollection[Data Collection<br/>Yahoo Finance API<br/>3 Years Historical Data]
+    
+    DataCollection --> CacheStorage[Cache Storage<br/>SQLite Database<br/>Local Persistence]
+    
+    CacheStorage --> DataPrep[Data Preprocessing<br/>MinMax Normalization<br/>Sequence Generation]
+    
+    DataPrep --> DataSplit[Dataset Split<br/>Training: 80%<br/>Validation: 20%]
+    
+    DataSplit --> ModelInit[Model Initialization<br/>LSTM Architecture<br/>3 Layers + Dropout]
+    
+    ModelInit --> Training[Model Training<br/>Optimizer: Adam<br/>Loss: MSE<br/>Early Stopping]
+    
+    Training --> Evaluation[Model Evaluation<br/>MAE, RMSE, MAPE<br/>Performance Metrics]
+    
+    Evaluation --> Persistence[Artifact Persistence]
+    
+    Persistence --> ModelArtifact[Model File<br/>modelo_lstm_{ticker}.keras]
+    Persistence --> ScalerArtifact[Scaler File<br/>scaler_lstm_{ticker}.joblib]
+    Persistence --> MetricsArtifact[Metrics File<br/>metrics_lstm_{ticker}.json]
+    
+    ModelArtifact --> Complete([Pipeline Complete])
+    ScalerArtifact --> Complete
+    MetricsArtifact --> Complete
+    
+    subgraph "Data Pipeline"
+        DataCollection
+        CacheStorage
+        DataPrep
+        DataSplit
     end
-
-    subgraph Model_Training["Model Training"]
-        Model
-        Train
-        Evaluate
+    
+    subgraph "ML Pipeline"
+        ModelInit
+        Training
+        Evaluation
     end
-
-    subgraph Artifacts["Artifacts"]
-        ModelFile
-        ScalerFile
-        MetricsFile
+    
+    subgraph "Artifact Management"
+        Persistence
+        ModelArtifact
+        ScalerArtifact
+        MetricsArtifact
     end
-
+    
+    classDef startEnd fill:#e8f5e8,stroke:#4caf50,stroke-width:3px
+    classDef dataNodes fill:#e3f2fd,stroke:#2196f3,stroke-width:2px
+    classDef mlNodes fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
+    classDef artifactNodes fill:#fff3e0,stroke:#ff9800,stroke-width:2px
+    
+    class Start,Complete startEnd
+    class DataCollection,CacheStorage,DataPrep,DataSplit dataNodes
+    class ModelInit,Training,Evaluation mlNodes
+    class Persistence,ModelArtifact,ScalerArtifact,MetricsArtifact artifactNodes
 ```
 
-3. **🧠 Arquitetura LSTM**
+3. **Neural Network Architecture**
 
-```mermaid 
-   graph TD
-       Input[📊 Input Sequence<br/>60 days × 1 feature] --> LSTM1[🧠 LSTM Layer 1<br/>50 units, return_sequences=True]
-       LSTM1 --> Drop1[🎯 Dropout 0.2]
-       Drop1 --> LSTM2[🧠 LSTM Layer 2<br/>50 units, return_sequences=True]
-       LSTM2 --> Drop2[🎯 Dropout 0.2]
-       Drop2 --> LSTM3[🧠 LSTM Layer 3<br/>50 units]
-       LSTM3 --> Drop3[🎯 Dropout 0.2]
-       Drop3 --> Dense[📈 Dense Layer<br/>1 unit, linear]
-       Dense --> Output[🎯 Price Prediction]
-       
-       style Input fill:#e3f2fd
-       style LSTM1 fill:#f3e5f5
-       style LSTM2 fill:#f3e5f5
-       style LSTM3 fill:#f3e5f5
-       style Dense fill:#e8f5e8
-       style Output fill:#fff3e0
+```mermaid
+graph TD
+    subgraph "Input Layer"
+        Input[Input Sequence<br/>Shape: 60 × 1<br/>Normalized Prices]
+    end
+    
+    subgraph "LSTM Stack"
+        LSTM1[LSTM Layer 1<br/>Units: 50<br/>Return Sequences: True<br/>Activation: tanh]
+        Drop1[Dropout Layer<br/>Rate: 0.2<br/>Regularization]
+        
+        LSTM2[LSTM Layer 2<br/>Units: 50<br/>Return Sequences: True<br/>Activation: tanh]
+        Drop2[Dropout Layer<br/>Rate: 0.2<br/>Regularization]
+        
+        LSTM3[LSTM Layer 3<br/>Units: 50<br/>Return Sequences: False<br/>Activation: tanh]
+        Drop3[Dropout Layer<br/>Rate: 0.2<br/>Regularization]
+    end
+    
+    subgraph "Output Layer"
+        Dense[Dense Layer<br/>Units: 1<br/>Activation: Linear<br/>Price Regression]
+        Output[Price Prediction<br/>Denormalized Output]
+    end
+    
+    Input --> LSTM1
+    LSTM1 --> Drop1
+    Drop1 --> LSTM2
+    LSTM2 --> Drop2
+    Drop2 --> LSTM3
+    LSTM3 --> Drop3
+    Drop3 --> Dense
+    Dense --> Output
+    
+    classDef inputLayer fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    classDef lstmLayer fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef dropoutLayer fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef outputLayer fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
+    
+    class Input inputLayer
+    class LSTM1,LSTM2,LSTM3 lstmLayer
+    class Drop1,Drop2,Drop3 dropoutLayer
+    class Dense,Output outputLayer
 ```
 
 4. **⚙️ Configurações de Treinamento**
@@ -271,46 +313,69 @@ uvicorn src.app.main:app --host 0.0.0.0 --port 8000 --reload
 
 ### **Arquitetura Docker**
 
-```mermaid 
+```mermaid
 graph TB
-    subgraph "Docker Compose Stack"
-        subgraph "API Container"
-            FastAPI[🚀 FastAPI App<br/>Port: 8000]
-            Models[🧠 LSTM Models]
-            SQLite[(💾 SQLite DB)]
+    subgraph "External Access"
+        Client[Client Applications]
+        Browser[Web Browser]
+    end
+    
+    subgraph "Docker Compose Environment"
+        subgraph "Application Container"
+            direction TB
+            FastAPI[FastAPI Application<br/>fastapi-stock-api<br/>Port: 8000]
+            ModelRegistry[LSTM Model Registry]
+            SQLiteDB[(SQLite Database<br/>dados_mercado.db)]
         end
         
-        subgraph "Monitoring Stack"
-            Prometheus[📊 Prometheus<br/>Port: 9090]
-            Grafana[📈 Grafana<br/>Port: 3000]
+        subgraph "Monitoring Infrastructure"
+            direction TB
+            Prometheus[Prometheus Server<br/>prometheus<br/>Port: 9090<br/>Metrics Collection]
+            Grafana[Grafana Dashboard<br/>grafana<br/>Port: 3000<br/>Visualization]
         end
         
-        subgraph "Volumes"
-            GrafanaData[(📊 grafana-data)]
-            ModelsVol[(🎯 trained-models)]
-            DBVol[(💾 sqlite-data)]
+        subgraph "Persistent Storage"
+            direction TB
+            GrafanaVolume[(grafana-data<br/>Dashboard Config)]
+            PrometheusConfig[prometheus.yml<br/>Scrape Configuration]
+            ModelsVolume[(Model Artifacts<br/>*.keras, *.joblib)]
+        end
+        
+        subgraph "Docker Network"
+            NetworkBridge[grafana-api-net<br/>Bridge Network]
         end
     end
     
-    Client[👤 Client] --> FastAPI
-    FastAPI --> Models
-    FastAPI --> SQLite
-    FastAPI -.->|metrics| Prometheus
-    Prometheus --> Grafana
+    Client -->|HTTP Requests| FastAPI
+    Browser -->|Dashboard Access| Grafana
+    Browser -->|Metrics Query| Prometheus
     
-    Grafana --> GrafanaData
-    Models --> ModelsVol
-    SQLite --> DBVol
+    FastAPI -->|Load Models| ModelRegistry
+    FastAPI -->|Data Storage| SQLiteDB
+    FastAPI -.->|Expose Metrics| Prometheus
     
-    subgraph "Network: grafana-api-net"
-        FastAPI
-        Prometheus
-        Grafana
-    end
+    Prometheus -->|Scrape /metrics| FastAPI
+    Prometheus -->|Query Data| Grafana
     
-    style FastAPI fill:#e1f5fe
-    style Prometheus fill:#fff3e0
-    style Grafana fill:#e8f5e8
+    Grafana -.->|Persist Config| GrafanaVolume
+    Prometheus -.->|Load Config| PrometheusConfig
+    ModelRegistry -.->|Store Artifacts| ModelsVolume
+    
+    FastAPI -.->|Network| NetworkBridge
+    Prometheus -.->|Network| NetworkBridge
+    Grafana -.->|Network| NetworkBridge
+    
+    classDef clientNodes fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    classDef appNodes fill:#e8f5e8,stroke:#4caf50,stroke-width:2px
+    classDef monitorNodes fill:#fff3e0,stroke:#ff9800,stroke-width:2px
+    classDef storageNodes fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
+    classDef networkNodes fill:#fce4ec,stroke:#e91e63,stroke-width:2px
+    
+    class Client,Browser clientNodes
+    class FastAPI,ModelRegistry,SQLiteDB appNodes
+    class Prometheus,Grafana monitorNodes
+    class GrafanaVolume,PrometheusConfig,ModelsVolume storageNodes
+    class NetworkBridge networkNodes
 ```
 
 ### **Execução com Docker**
@@ -460,37 +525,71 @@ http_request_duration_seconds_bucket{endpoint="/cotacao/previsao/VALE3",le="0.1"
 
 ### **Visão Geral da Arquitetura**
 
-```mermaid 
+```mermaid
 graph TB
-    Client[👤 Client/User] --> FastAPI[🚀 FastAPI App]
-    FastAPI --> LSTM[🧠 LSTM Models]
-    FastAPI --> Cache[(💾 SQLite Cache)]
-    FastAPI --> Prometheus[📊 Prometheus]
+    subgraph "Client Layer"
+        Client[Client Applications]
+    end
     
-    Cache --> Yahoo[📈 Yahoo Finance]
-    LSTM --> Models[(🎯 Trained Models)]
+    subgraph "API Gateway"
+        FastAPI[FastAPI Application<br/>Port: 8000]
+        Auth[Authentication & Validation]
+        Middleware[Prometheus Middleware]
+    end
     
-    Prometheus --> Grafana[📊 Grafana Dashboard]
+    subgraph "Business Logic"
+        PredService[Prediction Service]
+        DataLoader[Data Loader Service]
+    end
+    
+    subgraph "ML Infrastructure"
+        ModelRegistry[Model Registry]
+        LSTMModels[LSTM Models]
+        Scalers[MinMax Scalers]
+    end
     
     subgraph "Data Layer"
-        Cache
-        Yahoo
+        SQLiteCache[(SQLite Cache)]
+        YahooAPI[Yahoo Finance API]
     end
     
-    subgraph "ML Layer"
-        LSTM
-        Models
+    subgraph "Observability Stack"
+        Prometheus[Prometheus Server<br/>Port: 9090]
+        Grafana[Grafana Dashboard<br/>Port: 3000]
+        Metrics[Application Metrics]
     end
     
-    subgraph "Observability"
-        Prometheus
-        Grafana
-    end
+    Client --> FastAPI
+    FastAPI --> Auth
+    Auth --> PredService
+    FastAPI --> Middleware
     
-    style FastAPI fill:#e1f5fe
-    style LSTM fill:#f3e5f5
-    style Cache fill:#e8f5e8
-    style Prometheus fill:#fff3e0
+    PredService --> ModelRegistry
+    PredService --> DataLoader
+    
+    ModelRegistry --> LSTMModels
+    ModelRegistry --> Scalers
+    
+    DataLoader --> SQLiteCache
+    SQLiteCache -.->|Cache Miss| YahooAPI
+    
+    Middleware --> Metrics
+    Metrics --> Prometheus
+    Prometheus --> Grafana
+    
+    classDef clientLayer fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    classDef apiLayer fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef businessLayer fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
+    classDef mlLayer fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef dataLayer fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    classDef obsLayer fill:#f1f8e9,stroke:#689f38,stroke-width:2px
+    
+    class Client clientLayer
+    class FastAPI,Auth,Middleware apiLayer
+    class PredService,DataLoader businessLayer
+    class ModelRegistry,LSTMModels,Scalers mlLayer
+    class SQLiteCache,YahooAPI dataLayer
+    class Prometheus,Grafana,Metrics obsLayer
 ```
 
 ### **Componentes Principais**
@@ -527,65 +626,95 @@ graph TB
 
 ```mermaid
 sequenceDiagram
-    participant C as 👤 Client
-    participant F as 🚀 FastAPI
-    participant V as ✅ Validation
-    participant M as 🧠 Model Loader
-    participant D as 📊 Data Fetcher
-    participant P as 🔧 Preprocessor
-    participant L as 🎯 LSTM Model
-    participant R as 📋 Response
+    participant Client as Client Application
+    participant API as FastAPI Gateway
+    participant Auth as Request Validator
+    participant Service as Prediction Service
+    participant Registry as Model Registry
+    participant Cache as SQLite Cache
+    participant External as Yahoo Finance API
+    participant Model as LSTM Model
 
-    C->>F: HTTP Request
-    F->>V: Validate Parameters
-    V->>M: Load LSTM + Scaler
-    M->>D: Fetch Historical Data
-    D->>P: Raw OHLCV Data
-    P->>L: Normalized Sequences
-    L->>R: Price Prediction
-    R->>F: Formatted JSON
-    F->>C: HTTP Response
+    Client->>+API: POST /cotacao/previsao/{ticker}
+    API->>+Auth: Validate Request Parameters
+    Auth->>-API: Validation Result
+    
+    API->>+Service: Process Prediction Request
+    Service->>+Registry: Load Model & Scaler
+    Registry->>-Service: Model Artifacts
+    
+    Service->>+Cache: Query Historical Data
+    alt Cache Hit
+        Cache->>Service: Return Cached Data
+    else Cache Miss
+        Cache->>+External: Fetch Market Data
+        External->>-Cache: OHLCV Data
+        Cache->>Service: Return Fresh Data
+    end
+    
+    Service->>Service: Preprocess Data<br/>(Normalize & Create Sequences)
+    Service->>+Model: Execute Inference
+    Model->>-Service: Price Prediction
+    
+    Service->>Service: Calculate Metrics & Confidence
+    Service->>-API: Formatted Response
+    API->>-Client: JSON Response with Prediction
 
-    Note over D: Cache SQLite → Yahoo Finance
-    Note over L: 60-day lookback window
-    Note over R: Include metrics & confidence
+    Note over Cache, External: Fallback Strategy
+    Note over Service, Model: 60-day Lookback Window
+    Note over API, Client: Include Performance Metrics
 ```
 
 ### **Estratégia de Cache**
 
-```mermaid 
+```mermaid
 flowchart TD
-    Request[📥 Data Request] --> CheckCache{💾 Check SQLite Cache}
+    Request[Data Request] --> CacheCheck{SQLite Cache<br/>Lookup}
     
-    CheckCache -->|✅ Hit| CacheData[📊 Return Cached Data]
-    CheckCache -->|❌ Miss| YahooAPI[📈 Yahoo Finance API]
+    CacheCheck -->|Cache Hit| ValidateData{Data Freshness<br/>Validation}
+    CacheCheck -->|Cache Miss| ExternalAPI[Yahoo Finance API]
     
-    YahooAPI --> RateLimit{⏱️ Rate Limit OK?}
-    RateLimit -->|✅ Yes| Download[⬇️ Download Data]
-    RateLimit -->|❌ No| Wait[⏳ Wait & Retry]
+    ValidateData -->|Fresh Data| ReturnCached[Return Cached Data]
+    ValidateData -->|Stale Data| ExternalAPI
     
-    Wait --> YahooAPI
-    Download --> SaveCache[💾 Save to SQLite]
-    SaveCache --> ReturnData[📊 Return Fresh Data]
+    ExternalAPI --> RateLimit{Rate Limiting<br/>Check}
+    RateLimit -->|Within Limits| FetchData[Fetch Market Data]
+    RateLimit -->|Rate Limited| BackoffRetry[Exponential Backoff<br/>& Retry]
     
-    CacheData --> End[✅ Complete]
-    ReturnData --> End
+    BackoffRetry --> RateLimit
+    FetchData --> ProcessData[Data Validation<br/>& Transformation]
+    ProcessData --> UpdateCache[Update SQLite Cache]
+    UpdateCache --> ReturnFresh[Return Fresh Data]
     
-    subgraph "Cache Strategy"
-        CheckCache
-        CacheData
-        SaveCache
+    ReturnCached --> Complete[Request Complete]
+    ReturnFresh --> Complete
+    
+    subgraph "Cache Layer"
+        CacheCheck
+        ValidateData
+        UpdateCache
     end
     
-    subgraph "External API"
-        YahooAPI
+    subgraph "External Integration"
+        ExternalAPI
         RateLimit
-        Download
+        FetchData
+        BackoffRetry
     end
     
-    style CheckCache fill:#e3f2fd
-    style YahooAPI fill:#fff3e0
-    style SaveCache fill:#e8f5e8
+    subgraph "Data Processing"
+        ProcessData
+        ReturnCached
+        ReturnFresh
+    end
+    
+    classDef cacheNodes fill:#e8f5e8,stroke:#4caf50,stroke-width:2px
+    classDef externalNodes fill:#fff3e0,stroke:#ff9800,stroke-width:2px
+    classDef processNodes fill:#e3f2fd,stroke:#2196f3,stroke-width:2px
+    
+    class CacheCheck,ValidateData,UpdateCache cacheNodes
+    class ExternalAPI,RateLimit,FetchData,BackoffRetry externalNodes
+    class ProcessData,ReturnCached,ReturnFresh processNodes
 ```
 
 ---
