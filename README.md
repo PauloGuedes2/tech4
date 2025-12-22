@@ -170,48 +170,39 @@ python src/app/train_lstm.py
 
 ```mermaid 
     flowchart TD
-        Start([🚀 Início do Treinamento]) --> Download[📥 Download Dados<br/>Yahoo Finance - 3 anos]
-        Download --> Cache[💾 Salvar no SQLite]
-        Cache --> Prepare[🔧 Preparar Dados<br/>Normalização + Sequências]
-        
-        Prepare --> Split[📊 Train/Val Split<br/>80% / 20%]
-        Split --> Model[🧠 Criar Modelo LSTM<br/>3 camadas + Dropout]
-        
-        Model --> Train[⚡ Treinamento<br/>Adam + MSE + EarlyStopping]
-        Train --> Evaluate[📊 Avaliação<br/>MAE, RMSE, MAPE]
-        
-        Evaluate --> Save[💾 Salvar Artefatos]
-        Save --> ModelFile[📄 modelo_lstm_{ticker}.keras]
-        Save --> ScalerFile[📄 scaler_lstm_{ticker}.joblib]
-        Save --> MetricsFile[📄 metrics_lstm_{ticker}.json]
-        
-        ModelFile --> End([✅ Concluído])
+        Start((Início do Treinamento)) --> Download[Download Dados - Yahoo Finance (3 anos)]
+        Download --> Cache[Salvar no SQLite]
+        Cache --> Prepare[Preparar Dados: Normalização e Sequências]
+        Prepare --> Split[Train/Val Split 80% / 20%]
+        Split --> Model[Criar Modelo LSTM - 3 camadas + Dropout]
+        Model --> Train[Treinamento - Adam + MSE + EarlyStopping]
+        Train --> Evaluate[Avaliação - MAE, RMSE, MAPE]
+        Evaluate --> Save[Salvar Artefatos]
+        Save --> ModelFile[modelo_lstm_ticker.keras]
+        Save --> ScalerFile[scaler_lstm_ticker.joblib]
+        Save --> MetricsFile[metrics_lstm_ticker.json]
+        ModelFile --> End((Concluído))
         ScalerFile --> End
         MetricsFile --> End
-        
-        subgraph "Data Processing"
+    
+        subgraph Data_Processing["Data Processing"]
             Download
             Cache
             Prepare
             Split
         end
-        
-        subgraph "Model Training"
+    
+        subgraph Model_Training["Model Training"]
             Model
             Train
             Evaluate
         end
-        
-        subgraph "Artifacts"
+    
+        subgraph Artifacts["Artifacts"]
             ModelFile
             ScalerFile
             MetricsFile
         end
-        
-        style Start fill:#e8f5e8
-        style End fill:#e8f5e8
-        style Train fill:#f3e5f5
-        style Save fill:#fff3e0
 ```
 
 3. **🧠 Arquitetura LSTM**
