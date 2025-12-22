@@ -884,8 +884,11 @@ ANTES de qualquer decisão de investimento:
 
 Acesse a aplicação online hospedada no:
 
+---
+
 ### 🎥 Vídeo explicativo
 
+[![Watch the video](https://img.youtube.com/vi/SEU_VIDEO_ID/maxresdefault.jpg)](https://youtu.be/SEU_VIDEO_ID)
 ---
 
 ### 📄 **Licença MIT**
