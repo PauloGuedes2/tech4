@@ -15,6 +15,11 @@
 - [Visão Geral e Motivação](#visão-geral-e-motivação)
 - [Principais Funcionalidades](#principais-funcionalidades)
 - [Demonstração Rápida](#demonstração-rápida)
+- [Aplicação Hospedada](#aplicação-hospedada)
+- [Vídeo Explicativo](#vídeo-explicativo)
+- [Exemplo de Execução do Treinamento](#exemplo-de-execução-do-treinamento)
+- [Exemplo de Saída do Treinamento](#exemplo-de-saída-do-treinamento)
+- [Exemplo de Request/Response da API](#exemplo-de-requestresponse-da-api)
 - [Arquitetura do Projeto](#arquitetura-do-projeto)
 - [Instalação e Configuração](#instalação-e-configuração)
 - [Execução e Deploy](#execução-e-deploy)
@@ -91,6 +96,17 @@ Sistema avançado de previsão de preços de ações da B3 utilizando redes neur
 > **Nota**: Todos os modelos são treinados individualmente com dados históricos de 3 anos e janela de lookback de 60 dias.
 
 # Demonstração Rápida
+
+## **Aplicação Hospedada**
+
+> _Espaço reservado para inserir o link da aplicação em produção e do dashboard Grafana hospedado._
+>
+> - **Aplicação:** [URL da aplicação aqui]
+> - **Grafana:** [URL do Grafana aqui]
+
+## **Vídeo Explicativo**
+
+> _Espaço reservado para inserir o link e/ou thumbnail do vídeo explicativo do projeto._
 
 ## **Exemplo de Execução do Treinamento**
 
@@ -1286,4 +1302,3 @@ tech4/
 └── 📁 prometheus/                 # Configuração Prometheus
     └── 📄 prometheus.yml          # Configuração de scraping
 ```
-
