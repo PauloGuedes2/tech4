@@ -1,270 +1,123 @@
 # 🚀 **API de Previsão de Cotações - LSTM**
 
-[![Python](https://img.shields.io/badge/Python-3.11-blue?style=for-the-badge&logo=python)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
+[![Python](https://img.shields.io/badge/Python-3.11+-blue?style=for-the-badge&logo=python)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Latest-green?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
 [![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-orange?style=for-the-badge&logo=tensorflow)](https://tensorflow.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue?style=for-the-badge&logo=docker)](https://docker.com)
+[![Prometheus](https://img.shields.io/badge/Prometheus-Monitoring-red?style=for-the-badge&logo=prometheus)](https://prometheus.io)
+[![Grafana](https://img.shields.io/badge/Grafana-Dashboard-orange?style=for-the-badge&logo=grafana)](https://grafana.com)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
 ---
 
 ## 📋 **Índice**
 
-### 🎯 **Visão Geral e Funcionalidades**
+- [Visão Geral e Motivação](#visão-geral-e-motivação)
+- [Principais Funcionalidades](#principais-funcionalidades)
+- [Demonstração Rápida](#demonstração-rápida)
+- [Arquitetura do Projeto](#arquitetura-do-projeto)
+- [Instalação e Configuração](#instalação-e-configuração)
+- [Execução e Deploy](#execução-e-deploy)
+- [Treinamento dos Modelos](#treinamento-dos-modelos)
+- [Documentação da API](#documentação-da-api)
+- [Observabilidade e Monitoramento](#observabilidade-e-monitoramento)
+- [Limitações e Responsabilidades](#limitações-e-responsabilidades)
+- [Estrutura do Projeto](#estrutura-do-projeto)
+- [Licença e Contribuição](#licença-e-contribuição)
 
-- [Visão Geral](#-visão-geral)
-- [O Que o Sistema Faz](#-o-que-o-sistema-faz)
-    - [Funcionalidades Core](#funcionalidades-core)
-    - [Ativos Suportados](#ativos-suportados)
+# Visão Geral e Motivação
 
-### 🚀 **Guia de Instalação e Configuração**
-
-- [Instalação](#-instalação)
-    - [Pré-requisitos](#pré-requisitos)
-    - [Instalação Local](#instalação-local)
-    - [Instalação com Docker](#instalação-com-docker)
-- [Treinamento dos Modelos](#-treinamento-dos-modelos)
-    - [Processo de Treinamento](#processo-de-treinamento)
-    - [O Que Acontece Durante o Treinamento](#o-que-acontece-durante-o-treinamento)
-    - [Exemplo de Saída do Treinamento](#exemplo-de-saída-do-treinamento)
-- [Execução](#-execução)
-    - [Execução Local](#execução-local)
-    - [Execução com Docker](#execução-com-docker)
-    - [Verificação da Saúde](#verificação-da-saúde)
-
-### 🔌 **Documentação da API**
-
-- [Endpoints da API](#-endpoints-da-api)
-    - [Documentação Interativa](#-documentação-interativa)
-    - [1. Previsão Individual](#1-previsão-individual)
-    - [2. Previsão Histórica](#2-previsão-histórica)
-    - [3. Métricas Prometheus](#3-métricas-prometheus)
-    - [Códigos de Status](#códigos-de-status)
-
-### 🏗️ **Arquitetura e Tecnologia**
-
-- [Arquitetura Técnica](#-arquitetura-técnica)
-    - [Visão Geral da Arquitetura](#visão-geral-da-arquitetura)
-    - [Componentes Principais](#componentes-principais)
-    - [Fluxo de Dados](#fluxo-de-dados)
-    - [Estratégia de Cache](#estratégia-de-cache)
-- [Observabilidade](#-observabilidade)
-    - [Métricas Prometheus](#métricas-prometheus)
-    - [Grafana Dashboard](#grafana-dashboard)
-    - [Logs Estruturados](#logs-estruturados)
-- [Estrutura do Projeto](#-estrutura-do-projeto)
-
-### ⚠️ **Limitações e Responsabilidades**
-
-- [Limitações e Uso Responsável](#-limitações-e-uso-responsável)
-    - [Limitações Técnicas](#limitações-técnicas)
-    - [Limitações Financeiras](#limitações-financeiras)
-    - [Uso Responsável](#-uso-responsável)
-    - [Melhorias Futuras](#melhorias-futuras)
-
-### 📄 **Licença e Contribuição**
-
-- [Licença](#-licença)
-    - [Isenção de Responsabilidade](#-isenção-de-responsabilidade)
-- [Contribuição](#-contribuição)
-    - [Áreas de Contribuição](#áreas-de-contribuição)
-
----
+Sistema avançado de previsão de preços de ações da B3 utilizando redes neurais LSTM (Long Short-Term Memory). A API REST fornece previsões do preço de fechamento para o próximo dia útil, baseada em dados históricos de 3 anos e análise de séries temporais com observabilidade completa.
 
 ## 🎯 **Visão Geral**
 
-Sistema de previsão de preços de ações da B3 utilizando redes neurais LSTM (Long Short-Term Memory). A API REST fornece
-previsões do preço de fechamento para o próximo dia útil, baseada em dados históricos de 3 anos e análise de séries
-temporais.
-
 ### **Características Principais**
 
-- 🧠 **Modelos LSTM** individuais por ativo
-- 📊 **Previsões em tempo real** via API REST
-- 💾 **Cache inteligente** com SQLite
-- 📈 **Métricas de performance** (MAE, RMSE, MAPE)
-- 🔍 **Observabilidade** com Prometheus
-- 🐳 **Deploy containerizado** com Docker
+- 🧠 **Modelos LSTM** individuais por ativo com arquitetura de 3 camadas
+- 📊 **Previsões em tempo real** via API REST com FastAPI
+- 💾 **Cache inteligente** com SQLite e fallback automático
+- � **Métricas de performance** (MAE, RMSE, MAPE) persistidas
+- � **Observabilidade completa** com Prometheus + Grafana
+- �  **Deploy containerizado** com Docker Compose
+- � **Versionamento de modelos** com retreinamento dinâmico
+- ⚡ **Middleware de métricas** para monitoramento em tempo real
 
----
+### **Stack Tecnológica**
 
-## 🎯 **O Que o Sistema Faz**
+| Componente | Tecnologia | Versão | Propósito |
+|------------|------------|--------|-----------|
+| **API Framework** | FastAPI | Latest | REST API e documentação automática |
+| **ML Framework** | TensorFlow/Keras | 2.x | Redes neurais LSTM |
+| **Data Processing** | Pandas + NumPy | Latest | Manipulação de dados financeiros |
+| **Data Source** | yfinance | 0.2.36 | Yahoo Finance API |
+| **Database** | SQLite | Built-in | Cache local e persistência |
+| **Monitoring** | Prometheus | Latest | Coleta de métricas |
+| **Visualization** | Grafana | Latest | Dashboards e alertas |
+| **Containerization** | Docker + Compose | Latest | Orquestração de serviços |
+| **Preprocessing** | scikit-learn | Latest | Normalização e métricas |
 
-### **Funcionalidades Core**
+# Principais Funcionalidades
 
-#### 🔮 **Previsão de Preços**
+## **Funcionalidades Core**
+
+### 🔮 **Previsão de Preços**
 
 - Prediz o **preço de fechamento** do próximo dia útil
 - Utiliza **60 dias** de histórico como entrada (look-back window)
 - Normalização automática com **MinMaxScaler**
 
-#### 📊 **Análise Histórica**
+### 📊 **Análise Histórica**
 
 - Previsões retrospectivas dos últimos N dias úteis
 - Comparação entre **preço real vs predito**
 - Validação da performance do modelo
 
-#### 📈 **Métricas de Avaliação**
+### 📈 **Métricas de Avaliação**
 
 - **MAE** (Mean Absolute Error)
 - **RMSE** (Root Mean Square Error)
 - **MAPE** (Mean Absolute Percentage Error)
 
-### **Ativos Suportados**
+## **Ativos Suportados**
 
-- **VALE3.SA** - Vale S.A.
-- **PETR4.SA** - Petrobras PN
-- **ITSA4.SA** - Itaúsa PN
-- **MGLU3.SA** - Magazine Luiza ON
-- **TAEE11.SA** - Taesa UNT
+| Ticker | Empresa | Setor | Status |
+|--------|---------|-------|--------|
+| **VALE3.SA** | Vale S.A. | Mineração | ✅ Ativo |
+| **PETR4.SA** | Petrobras PN | Petróleo e Gás | ✅ Ativo |
+| **ITSA4.SA** | Itaúsa PN | Holding Financeira | ✅ Ativo |
+| **MGLU3.SA** | Magazine Luiza ON | Varejo | ✅ Ativo |
+| **TAEE11.SA** | Taesa UNT | Energia Elétrica | ✅ Ativo |
 
----
+> **Nota**: Todos os modelos são treinados individualmente com dados históricos de 3 anos e janela de lookback de 60 dias.
 
-## 🚀 **Instalação**
+# Demonstração Rápida
 
-### **Pré-requisitos**
-
-- Python 3.11+
-- pip ou conda
-- 4GB+ RAM (para treinamento)
-
-### **Instalação Local**
+## **Exemplo de Execução do Treinamento**
 
 ```bash
-# 1. Clone o repositório
-git clone <repository-url>
-cd tech4
-
-# 2. Instale as dependências
-pip install -r requirements.txt
-
-# 3. Crie a estrutura de diretórios
-mkdir -p src/app/modelos_treinados_lstm
-mkdir -p src/app/dados
-```
-
-### **Instalação com Docker**
-
-```bash
-# Build da imagem
-docker-compose build
-
-# Execução completa (API + Grafana + Prometheus)
-docker-compose up -d
-```
-
----
-
-## 🧠 **Treinamento dos Modelos**
-
-### **Processo de Treinamento**
-
-O treinamento deve ser executado **antes** da primeira utilização da API:
-
-```bash
-# Executa o pipeline completo de treinamento
+# Treinamento com parâmetros padrão
 python src/app/train_lstm.py
+
+# Saída esperada:
+🤖 Iniciando processo de treinamento de modelos LSTM...
+📁 Nova versão detectada: v2. Salvando em: /path/to/v2
+
+--- Processando ticker: VALE3.SA (Epochs: 100, Batch: 32) ---
+Dados carregados: 782 registros
+Sequências criadas: 722 amostras
+Modelo LSTM construído.
+Treinamento iniciado...
+Epoch 45/100 - Loss: 0.0023 - Val_Loss: 0.0031
+Early stopping triggered
+Métricas VALE3.SA: MAE=1.23
+Artefatos e métricas da v2 salvos para VALE3.SA.
+✅ Pipeline completo para VALE3.SA em /path/to/v2
+
+--- Processando ticker: PETR4.SA (Epochs: 100, Batch: 32) ---
+[... processo similar para outros tickers ...]
 ```
 
-### **Pipeline de Treinamento**
-
-```mermaid
-flowchart TD
-    Start(("Início do Treinamento")) --> DataCollection["Data Collection<br/>Yahoo Finance API<br/>3 Years Historical Data"]
-    DataCollection --> CacheStorage["Cache Storage<br/>SQLite Database<br/>Local Persistence"]
-    CacheStorage --> DataPrep["Data Preprocessing<br/>MinMax Normalization<br/>Sequence Generation"]
-    DataPrep --> DataSplit["Dataset Split<br/>Training: 80%<br/>Validation: 20%"]
-    DataSplit --> ModelInit["Model Initialization<br/>LSTM Architecture<br/>3 Layers + Dropout"]
-    ModelInit --> Training["Model Training<br/>Optimizer: Adam<br/>Loss: MSE<br/>Early Stopping"]
-    Training --> Evaluation["Model Evaluation<br/>MAE, RMSE, MAPE<br/>Performance Metrics"]
-    Evaluation --> Persistence["Artifact Persistence"]
-
-    Persistence --> ModelArtifact["Model File<br/>modelo_lstm_&#123;ticker&#125;.keras"]
-    Persistence --> ScalerArtifact["Scaler File<br/>scaler_lstm_&#123;ticker&#125;.joblib"]
-    Persistence --> MetricsArtifact["Metrics File<br/>metrics_lstm_&#123;ticker&#125;.json"]
-
-    ModelArtifact --> Complete(("Pipeline Complete"))
-    ScalerArtifact --> Complete
-    MetricsArtifact --> Complete
-
-    subgraph "Data Pipeline"
-        DataCollection
-        CacheStorage
-        DataPrep
-        DataSplit
-    end
-
-    subgraph "ML Pipeline"
-        ModelInit
-        Training
-        Evaluation
-    end
-
-    subgraph "Artifact Management"
-        Persistence
-        ModelArtifact
-        ScalerArtifact
-        MetricsArtifact
-    end
-```
-
-3. **Neural Network Architecture**
-
-```mermaid
-graph TD
-    subgraph "Input Layer"
-        Input[Input Sequence<br/>Shape: 60 × 1<br/>Normalized Prices]
-    end
-    
-    subgraph "LSTM Stack"
-        LSTM1[LSTM Layer 1<br/>Units: 50<br/>Return Sequences: True<br/>Activation: tanh]
-        Drop1[Dropout Layer<br/>Rate: 0.2<br/>Regularization]
-        
-        LSTM2[LSTM Layer 2<br/>Units: 50<br/>Return Sequences: True<br/>Activation: tanh]
-        Drop2[Dropout Layer<br/>Rate: 0.2<br/>Regularization]
-        
-        LSTM3[LSTM Layer 3<br/>Units: 50<br/>Return Sequences: False<br/>Activation: tanh]
-        Drop3[Dropout Layer<br/>Rate: 0.2<br/>Regularization]
-    end
-    
-    subgraph "Output Layer"
-        Dense[Dense Layer<br/>Units: 1<br/>Activation: Linear<br/>Price Regression]
-        Output[Price Prediction<br/>Denormalized Output]
-    end
-    
-    Input --> LSTM1
-    LSTM1 --> Drop1
-    Drop1 --> LSTM2
-    LSTM2 --> Drop2
-    Drop2 --> LSTM3
-    LSTM3 --> Drop3
-    Drop3 --> Dense
-    Dense --> Output
-    
-    classDef inputLayer fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
-    classDef lstmLayer fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    classDef dropoutLayer fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-    classDef outputLayer fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
-    
-    class Input inputLayer
-    class LSTM1,LSTM2,LSTM3 lstmLayer
-    class Drop1,Drop2,Drop3 dropoutLayer
-    class Dense,Output outputLayer
-```
-
-4. **⚙️ Configurações de Treinamento**
-    - **Optimizer**: Adam
-    - **Loss**: Mean Squared Error
-    - **Epochs**: 100 (com EarlyStopping)
-    - **Batch Size**: 32
-    - **Patience**: 10 epochs
-
-5. **💾 Persistência**
-    - Modelo: `modelo_lstm_{ticker}.keras`
-    - Scaler: `scaler_lstm_{ticker}.joblib`
-    - Métricas: `metrics_lstm_{ticker}.json`
-
-### **Exemplo de Saída do Treinamento**
+## **Exemplo de Saída do Treinamento**
 
 ```
 --- Processando ticker: VALE3.SA ---
@@ -280,229 +133,30 @@ Métricas finais:
 ✅ Pipeline completo para VALE3.SA executado com sucesso!
 ```
 
----
+## **Exemplo de Request/Response da API**
 
-## ⚡ **Execução**
-
-### **Execução Local**
+### **Request**
 
 ```bash
-# Inicia a API FastAPI
-python src/app/main.py
-
-# Ou usando uvicorn diretamente
-uvicorn src.app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-### **Arquitetura Docker**
-
-```mermaid
-graph TB
-    subgraph "External Access"
-        Client[Client Applications]
-        Browser[Web Browser]
-    end
-    
-    subgraph "Docker Compose Environment"
-        subgraph "Application Container"
-            direction TB
-            FastAPI[FastAPI Application<br/>fastapi-stock-api<br/>Port: 8000]
-            ModelRegistry[LSTM Model Registry]
-            SQLiteDB[(SQLite Database<br/>dados_mercado.db)]
-        end
-        
-        subgraph "Monitoring Infrastructure"
-            direction TB
-            Prometheus[Prometheus Server<br/>prometheus<br/>Port: 9090<br/>Metrics Collection]
-            Grafana[Grafana Dashboard<br/>grafana<br/>Port: 3000<br/>Visualization]
-        end
-        
-        subgraph "Persistent Storage"
-            direction TB
-            GrafanaVolume[(grafana-data<br/>Dashboard Config)]
-            PrometheusConfig[prometheus.yml<br/>Scrape Configuration]
-            ModelsVolume[(Model Artifacts<br/>*.keras, *.joblib)]
-        end
-        
-        subgraph "Docker Network"
-            NetworkBridge[grafana-api-net<br/>Bridge Network]
-        end
-    end
-    
-    Client -->|HTTP Requests| FastAPI
-    Browser -->|Dashboard Access| Grafana
-    Browser -->|Metrics Query| Prometheus
-    
-    FastAPI -->|Load Models| ModelRegistry
-    FastAPI -->|Data Storage| SQLiteDB
-    FastAPI -.->|Expose Metrics| Prometheus
-    
-    Prometheus -->|Scrape /metrics| FastAPI
-    Prometheus -->|Query Data| Grafana
-    
-    Grafana -.->|Persist Config| GrafanaVolume
-    Prometheus -.->|Load Config| PrometheusConfig
-    ModelRegistry -.->|Store Artifacts| ModelsVolume
-    
-    FastAPI -.->|Network| NetworkBridge
-    Prometheus -.->|Network| NetworkBridge
-    Grafana -.->|Network| NetworkBridge
-    
-    classDef clientNodes fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
-    classDef appNodes fill:#e8f5e8,stroke:#4caf50,stroke-width:2px
-    classDef monitorNodes fill:#fff3e0,stroke:#ff9800,stroke-width:2px
-    classDef storageNodes fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
-    classDef networkNodes fill:#fce4ec,stroke:#e91e63,stroke-width:2px
-    
-    class Client,Browser clientNodes
-    class FastAPI,ModelRegistry,SQLiteDB appNodes
-    class Prometheus,Grafana monitorNodes
-    class GrafanaVolume,PrometheusConfig,ModelsVolume storageNodes
-    class NetworkBridge networkNodes
-```
-
-### **Execução com Docker**
-
-```bash
-# API apenas
-docker run -p 8000:8000 fastapi-stock-api
-
-# Stack completa (API + Observabilidade)
-docker-compose up -d
-```
-
-### **Verificação da Saúde**
-
-```bash
-# Health check
-curl http://localhost:8000/docs
-
-# Teste rápido
-curl http://localhost:8000/cotacao/previsao/VALE3
-```
-
----
-
-## 🔌 **Endpoints da API**
-
-### **Base URL**: `http://localhost:8000`
-
-### **📊 Documentação Interativa**
-
-- **Swagger UI**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
-
----
-
-### **1. Previsão Individual**
-
-```http
-GET /cotacao/previsao/{acao}
-```
-
-**Parâmetros:**
-
-- `acao` (path): Código da ação (`VALE3`, `PETR4`, `ITSA4`, `MGLU3`, `TAEE11`)
-
-**Exemplo de Request:**
-
-```bash
-curl -X GET "http://localhost:8000/cotacao/previsao/VALE3" \
+curl -X GET "http://localhost:8000/cotacao/previsao/VALE3?versao=v1" \
      -H "accept: application/json"
 ```
 
-**Exemplo de Response:**
+### **Response**
 
 ```json
 {
-  "symbol": "VALE3",
-  "name": "VALE3 Previsão (LSTM)",
+  "symbol": "VALE3.SA",
+  "name": "VALE3",
   "predicted_price": 61.47,
-  "prediction_date": "2024-12-23",
-  "model_metrics": {
-    "mae": 1.23,
-    "rmse": 1.67,
-    "mape": 2.45
-  },
-  "confidence_level": "medium",
-  "last_real_price": 60.85,
-  "prediction_change_percent": 1.02
+  "prediction_date": "2024-12-26",
+  "MAE": 1.23,
+  "RMSE": 1.67,
+  "MAPE": 2.45
 }
 ```
 
----
-
-### **2. Previsão Histórica**
-
-```http
-GET /cotacao/historico/{acao}
-```
-
-**Parâmetros:**
-
-- `acao` (path): Código da ação
-- `days` (query, opcional): Número de dias (padrão: 7)
-
-**Exemplo de Request:**
-
-```bash
-curl -X GET "http://localhost:8000/cotacao/historico/VALE3?days=5" \
-     -H "accept: application/json"
-```
-
-**Exemplo de Response:**
-
-```json
-[
-  {
-    "symbol": "VALE3",
-    "name": "VALE3 - Real: R$ 60.85 | Predito: R$ 61.20",
-    "predicted_price": 61.20,
-    "prediction_date": "2024-12-20",
-    "model_metrics": {
-      "mae": 1.23,
-      "rmse": 1.67,
-      "mape": 2.45
-    },
-    "confidence_level": "medium",
-    "last_real_price": 60.85,
-    "prediction_change_percent": 0.57
-  }
-]
-```
-
----
-
-### **3. Métricas Prometheus**
-
-```http
-GET /metrics
-```
-
-**Exemplo de Response:**
-
-```
-# HELP http_requests_total Total de requisições HTTP
-# TYPE http_requests_total counter
-http_requests_total{method="GET",endpoint="/cotacao/previsao/VALE3",status="200"} 42.0
-
-# HELP http_request_duration_seconds Latência das requisições HTTP
-# TYPE http_request_duration_seconds histogram
-http_request_duration_seconds_bucket{endpoint="/cotacao/previsao/VALE3",le="0.1"} 35.0
-```
-
----
-
-### **Códigos de Status**
-
-| Código | Descrição                                                 |
-|--------|-----------------------------------------------------------|
-| `200`  | Sucesso                                                   |
-| `404`  | Ativo não encontrado                                      |
-| `422`  | Parâmetros inválidos                                      |
-| `500`  | Erro interno (modelo não encontrado, dados insuficientes) |
-
----
+# Arquitetura do Projeto
 
 ## 🏗️ **Arquitetura Técnica**
 
@@ -700,70 +354,939 @@ flowchart TD
     class ProcessData,ReturnCached,ReturnFresh processNodes
 ```
 
----
+### **Arquitetura de Deploy**
 
-## 📊 **Observabilidade**
-
-### **Métricas Prometheus**
-
-#### **Métricas HTTP**
-
-```python
-# Contador de requisições
-http_requests_total
-{method, endpoint, status}
-
-# Histograma de latência  
-http_request_duration_seconds
-{endpoint}
+```mermaid
+graph TB
+    subgraph "Load Balancer / Reverse Proxy"
+        LB[Nginx / Traefik<br/>Port: 80/443]
+    end
+    
+    subgraph "Application Layer"
+        API1[FastAPI Instance 1<br/>Port: 8000]
+        API2[FastAPI Instance 2<br/>Port: 8001]
+        API3[FastAPI Instance N<br/>Port: 800N]
+    end
+    
+    subgraph "Monitoring Stack"
+        PROM[Prometheus<br/>Port: 9090]
+        GRAF[Grafana<br/>Port: 3000]
+        ALERT[AlertManager<br/>Port: 9093]
+    end
+    
+    subgraph "Data Layer"
+        CACHE[(Redis Cache<br/>Port: 6379)]
+        DB[(SQLite / PostgreSQL)]
+        STORAGE[(Model Storage<br/>S3 / NFS)]
+    end
+    
+    subgraph "External Services"
+        YAHOO[Yahoo Finance API]
+        SLACK[Slack Notifications]
+    end
+    
+    LB --> API1
+    LB --> API2
+    LB --> API3
+    
+    API1 --> CACHE
+    API2 --> CACHE
+    API3 --> CACHE
+    
+    API1 --> DB
+    API2 --> DB
+    API3 --> DB
+    
+    API1 --> STORAGE
+    API2 --> STORAGE
+    API3 --> STORAGE
+    
+    API1 -.-> YAHOO
+    API2 -.-> YAHOO
+    API3 -.-> YAHOO
+    
+    PROM --> API1
+    PROM --> API2
+    PROM --> API3
+    
+    GRAF --> PROM
+    ALERT --> PROM
+    ALERT -.-> SLACK
+    
+    classDef apiNodes fill:#e8f5e8,stroke:#4caf50,stroke-width:2px
+    classDef monitorNodes fill:#fff3e0,stroke:#ff9800,stroke-width:2px
+    classDef dataNodes fill:#e3f2fd,stroke:#2196f3,stroke-width:2px
+    classDef externalNodes fill:#fce4ec,stroke:#e91e63,stroke-width:2px
+    classDef lbNodes fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
+    
+    class API1,API2,API3 apiNodes
+    class PROM,GRAF,ALERT monitorNodes
+    class CACHE,DB,STORAGE dataNodes
+    class YAHOO,SLACK externalNodes
+    class LB lbNodes
 ```
 
-#### **Configuração Prometheus** (`prometheus/prometheus.yml`)
+# Instalação e Configuração
+
+## **Pré-requisitos**
+
+| Requisito | Versão Mínima | Recomendado | Observações |
+|-----------|---------------|-------------|-------------|
+| **Python** | 3.11+ | 3.11+ | Compatibilidade com TensorFlow |
+| **RAM** | 4GB | 8GB+ | Para treinamento de modelos |
+| **Armazenamento** | 2GB | 5GB+ | Modelos + dados históricos |
+| **Docker** | 20.10+ | Latest | Para deploy containerizado |
+| **Docker Compose** | 2.0+ | Latest | Orquestração de serviços |
+
+## **Instalação Local (Desenvolvimento)**
+
+```bash
+# 1. Clone o repositório
+git clone <repository-url>
+cd tech4
+
+# 2. Crie um ambiente virtual (recomendado)
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# ou
+venv\Scripts\activate     # Windows
+
+# 3. Instale as dependências
+pip install -r requirements.txt
+
+# 4. Crie a estrutura de diretórios
+mkdir -p src/app/modelos_treinados_lstm/v1
+mkdir -p src/app/dados
+
+# 5. Execute o treinamento inicial (obrigatório)
+python src/app/train_lstm.py
+
+# 6. Inicie a API
+python src/app/main.py
+```
+
+## **Instalação com Docker (Produção)**
+
+```bash
+# 1. Clone o repositório
+git clone <repository-url>
+cd tech4
+
+# 2. Build e execução completa
+docker-compose up -d --build
+
+# 3. Verificar status dos serviços
+docker-compose ps
+
+# 4. Logs em tempo real
+docker-compose logs -f api
+```
+
+## **Verificação da Instalação**
+
+```bash
+# Health check da API
+curl http://localhost:8000/docs
+
+# Teste de previsão
+curl http://localhost:8000/cotacao/previsao/VALE3
+
+# Métricas Prometheus
+curl http://localhost:8000/metrics
+
+# Dashboard Grafana
+# Acesse: http://localhost:3000 (admin/admin)
+```
+
+## **Configurações de Ambiente**
+
+#### **Variáveis de Ambiente**
+
+```bash
+# .env file
+HOST=0.0.0.0
+PORT=8000
+LOG_LEVEL=INFO
+YAHOO_FINANCE_TIMEOUT=30
+MODEL_CACHE_TTL=3600
+PROMETHEUS_ENABLED=true
+GRAFANA_ADMIN_PASSWORD=secure_password
+```
+
+#### **Docker Compose Override**
 
 ```yaml
+# docker-compose.override.yml
+version: "3.9"
+services:
+  api:
+    environment:
+      - LOG_LEVEL=DEBUG
+      - YAHOO_FINANCE_TIMEOUT=60
+    volumes:
+      - ./logs:/app/logs
+  
+  grafana:
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+    ports:
+      - "3001:3000"  # Porta alternativa
+```
+
+# Execução e Deploy
+
+## **Execução Local (Desenvolvimento)**
+
+```bash
+# Método 1: Usando o script principal
+python src/app/main.py
+
+# Método 2: Usando uvicorn diretamente
+uvicorn src.app.main:app --host 0.0.0.0 --port 8000 --reload
+
+# Método 3: Com configurações customizadas
+HOST=0.0.0.0 PORT=8080 python src/app/main.py
+```
+
+## **Execução com Docker**
+
+#### **Opção 1: Stack Completa (Recomendado)**
+```bash
+# Inicia todos os serviços (API + Prometheus + Grafana)
+docker-compose up -d
+
+# Verifica status dos containers
+docker-compose ps
+
+# Logs em tempo real
+docker-compose logs -f
+
+# Para serviços específicos
+docker-compose logs -f api
+docker-compose logs -f grafana
+docker-compose logs -f prometheus
+```
+
+#### **Opção 2: Apenas API**
+```bash
+# Build da imagem
+docker build -t fastapi-stock-api .
+
+# Execução simples
+docker run -p 8000:8000 fastapi-stock-api
+
+# Execução com volumes (persistência)
+docker run -p 8000:8000 \
+  -v $(pwd)/src/app/dados:/app/src/app/dados \
+  -v $(pwd)/src/app/modelos_treinados_lstm:/app/src/app/modelos_treinados_lstm \
+  fastapi-stock-api
+```
+
+## **Health Checks e Monitoramento**
+
+```bash
+# Health check da API
+curl -f http://localhost:8000/docs || exit 1
+
+# Verificação de métricas
+curl -s http://localhost:8000/metrics | grep http_requests_total
+
+# Status dos modelos
+curl http://localhost:8000/cotacao/previsao/VALE3 | jq '.MAE'
+
+# Logs estruturados
+docker-compose logs api | grep ERROR
+
+# Monitoramento de recursos
+docker stats fastapi-stock-api
+```
+
+## **Troubleshooting**
+
+#### **Problemas Comuns**
+
+| Problema | Sintoma | Solução |
+|----------|---------|---------|
+| **Modelo não encontrado** | HTTP 500 | Execute `python src/app/train_lstm.py` |
+| **Dados desatualizados** | Previsões antigas | Verifique conexão com Yahoo Finance |
+| **Alta latência** | Timeout nas requests | Otimize cache ou aumente recursos |
+| **Grafana não carrega** | Dashboard vazio | Verifique configuração do Prometheus |
+
+#### **Comandos de Debug**
+
+```bash
+# Verificar logs detalhados
+docker-compose logs -f --tail=100 api
+
+# Entrar no container para debug
+docker-compose exec api bash
+
+# Verificar modelos treinados
+ls -la src/app/modelos_treinados_lstm/v*/
+
+# Testar conexão com Yahoo Finance
+python -c "import yfinance as yf; print(yf.download('VALE3.SA', period='1d'))"
+
+# Verificar métricas do Prometheus
+curl -s http://localhost:9090/api/v1/query?query=up
+```
+
+# Treinamento dos Modelos
+
+## **Processo de Treinamento**
+
+```bash
+# Executa o pipeline completo de treinamento
+python src/app/train_lstm.py
+```
+
+## **Pipeline de Treinamento**
+
+```mermaid
+flowchart TD
+    Start(("Início do Treinamento")) --> VersionCheck["Version Management<br/>Detecta próxima versão<br/>(v1, v2, v3...)"]
+    VersionCheck --> DataCollection["Data Collection<br/>Yahoo Finance API<br/>3 Years Historical Data<br/>OHLCV + Volume"]
+    DataCollection --> CacheStorage["Cache Storage<br/>SQLite Database<br/>Local Persistence<br/>Fallback Strategy"]
+    CacheStorage --> DataValidation["Data Validation<br/>Missing Values Check<br/>Outlier Detection<br/>Data Quality Assurance"]
+    DataValidation --> DataPrep["Data Preprocessing<br/>MinMax Normalization<br/>Sequence Generation<br/>60-day Lookback Window"]
+    DataPrep --> DataSplit["Dataset Split<br/>Training: 70%<br/>Validation: 15%<br/>Test: 15%"]
+    DataSplit --> ModelInit["Model Initialization<br/>LSTM Architecture<br/>3 Layers + Dropout<br/>Adam Optimizer"]
+    ModelInit --> Training["Model Training<br/>Epochs: 100 (configurable)<br/>Batch Size: 32 (configurable)<br/>Early Stopping: 10 patience"]
+    Training --> Evaluation["Model Evaluation<br/>MAE, RMSE, MAPE<br/>Performance Metrics<br/>Test Set Validation"]
+    Evaluation --> QualityCheck{"Quality Gate<br/>MAPE < 10%?<br/>RMSE Reasonable?"}
+    QualityCheck -->|Pass| Persistence["Artifact Persistence"]
+    QualityCheck -->|Fail| Retrain["Hyperparameter Tuning<br/>Architecture Adjustment"]
+    Retrain --> Training
+
+    Persistence --> ModelArtifact["Model File<br/>modelo_lstm_{ticker}.keras<br/>TensorFlow SavedModel"]
+    Persistence --> ScalerArtifact["Scaler File<br/>scaler_lstm_{ticker}.joblib<br/>MinMaxScaler State"]
+    Persistence --> MetricsArtifact["Metrics File<br/>metrics_lstm_{ticker}.json<br/>Performance Metrics"]
+    Persistence --> DatabasePersist["Database Persistence<br/>SQLite Metrics Storage<br/>Version Tracking"]
+
+    ModelArtifact --> Complete(("Pipeline Complete<br/>Ready for Inference"))
+    ScalerArtifact --> Complete
+    MetricsArtifact --> Complete
+    DatabasePersist --> Complete
+
+    subgraph "Data Pipeline"
+        DataCollection
+        CacheStorage
+        DataValidation
+        DataPrep
+        DataSplit
+    end
+
+    subgraph "ML Pipeline"
+        ModelInit
+        Training
+        Evaluation
+        QualityCheck
+        Retrain
+    end
+
+    subgraph "Artifact Management"
+        Persistence
+        ModelArtifact
+        ScalerArtifact
+        MetricsArtifact
+        DatabasePersist
+    end
+
+    classDef startEnd fill:#e8f5e8,stroke:#4caf50,stroke-width:3px
+    classDef dataNodes fill:#e3f2fd,stroke:#2196f3,stroke-width:2px
+    classDef mlNodes fill:#fff3e0,stroke:#ff9800,stroke-width:2px
+    classDef artifactNodes fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
+    classDef decisionNodes fill:#ffebee,stroke:#f44336,stroke-width:2px
+    
+    class Start,Complete startEnd
+    class DataCollection,CacheStorage,DataValidation,DataPrep,DataSplit dataNodes
+    class ModelInit,Training,Evaluation,Retrain mlNodes
+    class Persistence,ModelArtifact,ScalerArtifact,MetricsArtifact,DatabasePersist artifactNodes
+    class QualityCheck decisionNodes
+```
+
+## **Arquitetura da Rede Neural LSTM**
+
+```mermaid
+graph TD
+    subgraph "Input Layer"
+        Input[Input Sequence<br/>Shape: (batch_size, 60, 1)<br/>Normalized Close Prices<br/>MinMax Scaled [0,1]]
+    end
+    
+    subgraph "LSTM Stack - Feature Extraction"
+        LSTM1[LSTM Layer 1<br/>Units: 50<br/>Return Sequences: True<br/>Activation: tanh<br/>Recurrent Dropout: 0.0]
+        Drop1[Dropout Layer 1<br/>Rate: 0.2<br/>Regularization<br/>Prevent Overfitting]
+        
+        LSTM2[LSTM Layer 2<br/>Units: 50<br/>Return Sequences: False<br/>Activation: tanh<br/>Final Sequence Output]
+        Drop2[Dropout Layer 2<br/>Rate: 0.2<br/>Regularization<br/>Feature Noise Reduction]
+    end
+    
+    subgraph "Dense Layers - Decision Making"
+        Dense1[Dense Layer 1<br/>Units: 25<br/>Activation: ReLU<br/>Feature Compression]
+        Dense2[Dense Layer 2<br/>Units: 1<br/>Activation: Linear<br/>Price Regression Output]
+    end
+    
+    subgraph "Output Processing"
+        Denorm[Denormalization<br/>MinMaxScaler.inverse_transform<br/>Convert to Real Price]
+        Output[Price Prediction<br/>Next Day Close Price<br/>Brazilian Real (R$)]
+    end
+    
+    Input --> LSTM1
+    LSTM1 --> Drop1
+    Drop1 --> LSTM2
+    LSTM2 --> Drop2
+    Drop2 --> Dense1
+    Dense1 --> Dense2
+    Dense2 --> Denorm
+    Denorm --> Output
+    
+    classDef inputLayer fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    classDef lstmLayer fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef dropoutLayer fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef denseLayer fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
+    classDef outputLayer fill:#ffebee,stroke:#d32f2f,stroke-width:2px
+    
+    class Input inputLayer
+    class LSTM1,LSTM2 lstmLayer
+    class Drop1,Drop2 dropoutLayer
+    class Dense1,Dense2 denseLayer
+    class Denorm,Output outputLayer
+```
+
+## **Configurações de Treinamento**
+
+| Parâmetro | Valor Padrão | Configurável | Descrição |
+|-----------|--------------|--------------|-----------|
+| **Epochs** | 100 | ✅ Via API | Número máximo de épocas |
+| **Batch Size** | 32 | ✅ Via API | Tamanho do lote de treinamento |
+| **Learning Rate** | 0.001 | ❌ Fixo | Taxa de aprendizado do Adam |
+| **Early Stopping** | 10 epochs | ❌ Fixo | Paciência para parada antecipada |
+| **Validation Split** | 15% | ❌ Fixo | Porcentagem para validação |
+| **Test Split** | 15% | ❌ Fixo | Porcentagem para teste |
+| **Lookback Window** | 60 dias | ❌ Fixo | Janela de dados históricos |
+| **Dropout Rate** | 0.2 | ❌ Fixo | Taxa de dropout para regularização |
+
+## **Versionamento de Modelos**
+
+O sistema implementa versionamento automático de modelos:
+
+```bash
+src/app/modelos_treinados_lstm/
+├── v1/                          # Primeira versão
+│   ├── modelo_lstm_VALE3.SA.keras
+│   ├── scaler_lstm_VALE3.SA.joblib
+│   └── metrics_lstm_VALE3.SA.json
+├── v2/                          # Segunda versão (após retreinamento)
+│   ├── modelo_lstm_VALE3.SA.keras
+│   ├── scaler_lstm_VALE3.SA.joblib
+│   └── metrics_lstm_VALE3.SA.json
+└── v3/                          # Terceira versão
+    └── ...
+```
+
+## **Retreinamento via API**
+
+```bash
+# Retreinamento com parâmetros customizados
+curl -X POST "http://localhost:8000/cotacao/retreinar?epochs=50&batch=16"
+
+# Resposta:
+{
+  "status": "Treinamento iniciado em segundo plano"
+}
+
+# Monitoramento via logs
+docker-compose logs -f api | grep "Pipeline completo"
+```
+
+# Documentação da API
+
+## **Base URL**: `http://localhost:8000`
+
+### **📊 Documentação Interativa**
+
+- **Swagger UI**: `http://localhost:8000/docs` - Interface interativa completa
+- **ReDoc**: `http://localhost:8000/redoc` - Documentação alternativa
+- **OpenAPI Schema**: `http://localhost:8000/openapi.json` - Schema JSON
+
+---
+
+### **1. Previsão Individual**
+
+Obtém a previsão do preço de fechamento para o próximo dia útil.
+
+```http
+GET /cotacao/previsao/{acao}?versao={versao}
+```
+
+**Parâmetros:**
+- `acao` (path, obrigatório): Código da ação (`VALE3`, `PETR4`, `ITSA4`, `MGLU3`, `TAEE11`)
+- `versao` (query, opcional): Versão do modelo (`v1`, `v2`, etc.) - padrão: `v1`
+
+**Exemplo de Request:**
+
+```bash
+curl -X GET "http://localhost:8000/cotacao/previsao/VALE3?versao=v1" \
+     -H "accept: application/json"
+```
+
+**Exemplo de Response:**
+
+```json
+{
+  "symbol": "VALE3.SA",
+  "name": "VALE3",
+  "predicted_price": 61.47,
+  "prediction_date": "2024-12-26",
+  "MAE": 1.23,
+  "RMSE": 1.67,
+  "MAPE": 2.45
+}
+```
+
+---
+
+### **2. Previsão Histórica**
+
+Obtém previsões retrospectivas para análise de performance.
+
+```http
+GET /cotacao/historico/{acao}?versao={versao}
+```
+
+**Parâmetros:**
+- `acao` (path, obrigatório): Código da ação
+- `versao` (query, opcional): Versão do modelo - padrão: `v1`
+
+**Exemplo de Request:**
+
+```bash
+curl -X GET "http://localhost:8000/cotacao/historico/VALE3?versao=v1" \
+     -H "accept: application/json"
+```
+
+**Exemplo de Response:**
+
+```json
+[
+  {
+    "symbol": "VALE3.SA",
+    "name": "VALE3",
+    "predicted_price": 61.20,
+    "prediction_date": "2024-12-25",
+    "MAE": 1.23,
+    "RMSE": 1.67,
+    "MAPE": 2.45
+  },
+  {
+    "symbol": "VALE3.SA",
+    "name": "VALE3",
+    "predicted_price": 60.98,
+    "prediction_date": "2024-12-24",
+    "MAE": 1.23,
+    "RMSE": 1.67,
+    "MAPE": 2.45
+  }
+]
+```
+
+---
+
+### **3. Retreinamento de Modelos**
+
+Inicia o retreinamento de todos os modelos em background.
+
+```http
+POST /cotacao/retreinar?epochs={epochs}&batch={batch_size}
+```
+
+**Parâmetros:**
+- `epochs` (query, opcional): Número de épocas - padrão: `100`
+- `batch` (query, opcional): Tamanho do batch - padrão: `32`
+
+**Exemplo de Request:**
+
+```bash
+curl -X POST "http://localhost:8000/cotacao/retreinar?epochs=50&batch=16" \
+     -H "accept: application/json"
+```
+
+**Exemplo de Response:**
+
+```json
+{
+  "status": "Treinamento iniciado em segundo plano"
+}
+```
+
+---
+
+### **4. Métricas Prometheus**
+
+Endpoint para coleta de métricas pelo Prometheus.
+
+```http
+GET /metrics
+```
+
+**Exemplo de Response:**
+
+```
+# HELP http_requests_total Total de requisições HTTP
+# TYPE http_requests_total counter
+http_requests_total{method="GET",endpoint="/cotacao/previsao/VALE3",status="200"} 42.0
+
+# HELP http_request_duration_seconds Latência das requisições HTTP
+# TYPE http_request_duration_seconds histogram
+http_request_duration_seconds_bucket{endpoint="/cotacao/previsao/VALE3",le="0.1"} 35.0
+http_request_duration_seconds_bucket{endpoint="/cotacao/previsao/VALE3",le="0.25"} 40.0
+http_request_duration_seconds_bucket{endpoint="/cotacao/previsao/VALE3",le="0.5"} 42.0
+http_request_duration_seconds_bucket{endpoint="/cotacao/previsao/VALE3",le="+Inf"} 42.0
+http_request_duration_seconds_sum{endpoint="/cotacao/previsao/VALE3"} 8.2
+http_request_duration_seconds_count{endpoint="/cotacao/previsao/VALE3"} 42.0
+```
+
+---
+
+### **Códigos de Status HTTP**
+
+| Código | Descrição | Exemplo |
+|--------|-----------|---------|
+| `200` | Sucesso | Previsão retornada com sucesso |
+| `404` | Não encontrado | Ativo não suportado ou versão inexistente |
+| `422` | Parâmetros inválidos | Ticker inválido ou parâmetros malformados |
+| `500` | Erro interno | Modelo não encontrado, dados insuficientes |
+
+### **Tratamento de Erros**
+
+```json
+{
+  "detail": "Pasta 'v99' não encontrada no servidor."
+}
+```
+
+# Observabilidade e Monitoramento
+
+## **Stack de Monitoramento**
+
+| Componente | Porta | Usuário | Senha | Propósito |
+|------------|-------|---------|-------|-----------|
+| **Grafana** | 3000 | `admin` | `admin` | Dashboards e visualização |
+| **Prometheus** | 9090 | - | - | Coleta e armazenamento de métricas |
+| **FastAPI Metrics** | 8000/metrics | - | - | Endpoint de métricas da aplicação |
+
+## **Métricas Coletadas**
+
+#### **Métricas HTTP (Prometheus)**
+
+```python
+# Contador de requisições por endpoint
+http_requests_total{method, endpoint, status}
+
+# Histograma de latência por endpoint
+http_request_duration_seconds{endpoint}
+
+# Exemplos de queries PromQL
+rate(http_requests_total[5m])                    # Taxa de requisições por segundo
+histogram_quantile(0.95, http_request_duration_seconds_bucket)  # Latência P95
+```
+
+#### **Métricas de Negócio**
+
+```python
+# Métricas específicas da aplicação (implementação futura)
+model_prediction_accuracy{ticker, version}       # Acurácia por modelo
+model_inference_duration{ticker}                 # Tempo de inferência
+cache_hit_ratio{data_source}                    # Taxa de acerto do cache
+yahoo_finance_api_calls_total{status}           # Chamadas para API externa
+```
+
+## **Configuração do Prometheus**
+
+```yaml
+# prometheus/prometheus.yml
 global:
   scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
 
 scrape_configs:
   - job_name: 'fastapi-stock-api'
     static_configs:
-      - targets: [ 'api:8000' ]
+      - targets: ['api:8000']
     scrape_interval: 5s
     metrics_path: '/metrics'
+    scrape_timeout: 10s
 ```
 
-### **Grafana Dashboard**
+## **Dashboards Grafana**
 
-**Acesso**: `http://localhost:3000`
+#### **Dashboard Principal - API Performance**
 
-- **Usuário**: `admin`
-- **Senha**: `admin`
+```json
+{
+  "dashboard": {
+    "title": "FastAPI Stock Prediction API",
+    "panels": [
+      {
+        "title": "Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "{{method}} {{endpoint}}"
+          }
+        ]
+      },
+      {
+        "title": "Response Time P95",
+        "type": "graph", 
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95 Latency"
+          }
+        ]
+      },
+      {
+        "title": "Error Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{status=~\"4..|5..\"}[5m])",
+            "legendFormat": "{{status}} errors"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
 
-**Métricas Disponíveis**:
+#### **Dashboard de Modelos ML**
 
-- Taxa de requisições por endpoint
-- Latência P50, P95, P99
-- Taxa de erro por status code
-- Throughput da API
+- **Acurácia por Ticker**: Comparação de MAE, RMSE, MAPE
+- **Tempo de Inferência**: Latência por modelo
+- **Uso de Cache**: Hit/miss ratio por fonte de dados
+- **Qualidade dos Dados**: Freshness e completude
 
-### **Logs Estruturados**
+
+## **Logs Estruturados**
+
+#### **Configuração de Logging**
 
 ```python
-# Configuração de logging
+# src/app/logger/logger.py
 import logging
+import json
+from datetime import datetime
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
-# Exemplos de logs
-logger.info(f"Requisição recebida para: {acao}")
-logger.debug(f"Carregando modelo para {ticker}")
-logger.error(f"Erro na predição: {error}", exc_info=True)
+class StructuredLogger:
+    def __init__(self, name: str):
+        self.logger = logging.getLogger(name)
+        self.logger.setLevel(logging.INFO)
+        
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+    
+    def log_prediction(self, ticker: str, price: float, latency: float):
+        self.logger.info(json.dumps({
+            "event": "prediction_made",
+            "ticker": ticker,
+            "predicted_price": price,
+            "latency_ms": latency * 1000,
+            "timestamp": datetime.utcnow().isoformat()
+        }))
+    
+    def log_error(self, error: str, context: dict = None):
+        self.logger.error(json.dumps({
+            "event": "error_occurred",
+            "error": error,
+            "context": context or {},
+            "timestamp": datetime.utcnow().isoformat()
+        }))
 ```
 
----
+#### **Exemplos de Logs**
 
-## 📁 **Estrutura do Projeto**
+```json
+// Previsão bem-sucedida
+{
+  "event": "prediction_made",
+  "ticker": "VALE3.SA",
+  "predicted_price": 61.47,
+  "latency_ms": 245.3,
+  "timestamp": "2024-12-26T10:30:00Z"
+}
+
+// Erro de modelo
+{
+  "event": "error_occurred", 
+  "error": "Model not found for ticker INVALID.SA",
+  "context": {
+    "ticker": "INVALID.SA",
+    "version": "v1",
+    "endpoint": "/cotacao/previsao/INVALID"
+  },
+  "timestamp": "2024-12-26T10:31:00Z"
+}
+
+// Cache miss
+{
+  "event": "cache_miss",
+  "ticker": "PETR4.SA",
+  "data_source": "yahoo_finance",
+  "fetch_duration_ms": 1250.7,
+  "timestamp": "2024-12-26T10:32:00Z"
+}
+```
+
+#### **Comandos de Monitoramento**
+
+```bash
+# Verificar métricas em tempo real
+watch -n 5 'curl -s http://localhost:8000/metrics | grep http_requests_total'
+
+# Monitorar logs de erro
+docker-compose logs -f api | grep ERROR
+
+# Verificar status dos containers
+docker-compose ps
+
+# Monitorar recursos do sistema
+docker stats --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}"
+
+# Testar conectividade com Prometheus
+curl -s http://localhost:9090/api/v1/query?query=up | jq '.data.result'
+
+# Verificar dashboards do Grafana
+curl -s -u admin:admin http://localhost:3000/api/dashboards/home
+```
+
+# Limitações e Responsabilidades
+
+## **Limitações Técnicas**
+
+#### **📊 Dados e Modelos**
+
+| Limitação | Descrição | Impacto | Mitigação Possível |
+|-----------|-----------|---------|-------------------|
+| **Período Histórico** | Limitado a 3 anos de dados | Pode não capturar ciclos longos | Expandir para 5-10 anos |
+| **Frequência de Dados** | Apenas dados diários (EOD) | Não captura movimentos intraday | Implementar dados de alta frequência |
+| **Universo de Ativos** | Restrito a 5 ações da B3 | Cobertura limitada do mercado | Expandir para mais setores |
+| **Fonte Única** | Dependência do Yahoo Finance | Ponto único de falha | Implementar múltiplas fontes |
+| **Features Limitadas** | Apenas preços históricos | Ignora fundamentalistas e sentimento | Adicionar indicadores técnicos e fundamentalistas |
+
+#### **🧠 Machine Learning**
+
+| Limitação | Descrição | Impacto | Solução Recomendada |
+|-----------|-----------|---------|-------------------|
+| **Arquitetura Simples** | LSTM básico sem ensemble | Menor robustez | Implementar ensemble de modelos |
+| **Sem Retreinamento Automático** | Modelos ficam desatualizados | Degradação da performance | Pipeline de retreinamento automático |
+| **Validação Simples** | Sem walk-forward analysis | Overfitting temporal | Implementar validação temporal |
+| **Sem Análise de Regime** | Não detecta mudanças de mercado | Performance inconsistente | Detectores de mudança de regime |
+| **Sem Incerteza** | Não fornece intervalos de confiança | Decisões sem contexto de risco | Implementar Bayesian LSTM |
+
+#### **⚡ Performance e Escalabilidade**
+
+| Aspecto | Limitação Atual | Impacto | Solução |
+|---------|----------------|---------|---------|
+| **Latência** | 200-500ms por previsão | UX degradada | Cache de previsões, otimização de modelo |
+| **Concorrência** | Single-threaded | Não suporta alta carga | Load balancing, async processing |
+| **Cache** | Sem TTL automático | Dados podem ficar stale | Implementar cache inteligente |
+| **Escalabilidade** | Single-instance | Limitação de throughput | Arquitetura distribuída |
+| **Memória** | Carregamento de todos os modelos | Alto uso de RAM | Lazy loading, model serving |
+
+## **Limitações Financeiras e Regulatórias**
+
+#### **❌ O que este sistema NÃO é:**
+
+```
+🚫 AVISOS IMPORTANTES
+
+❌ NÃO é consultoria financeira registrada na CVM
+❌ NÃO substitui análise profissional qualificada  
+❌ NÃO garante lucros ou performance futura
+❌ NÃO considera análise fundamentalista
+❌ NÃO é um sistema de trading automatizado
+❌ NÃO considera fatores macroeconômicos
+❌ NÃO analisa notícias ou eventos corporativos
+❌ NÃO considera liquidez ou volume de negociação
+```
+
+#### **✅ O que este sistema É:**
+
+```
+✅ PROPÓSITOS VÁLIDOS
+
+✅ Ferramenta educacional para aprender ML em finanças
+✅ Prova de conceito técnica de LSTM em séries temporais
+✅ Sistema de apoio à decisão (não decisão final)
+✅ Código aberto auditável e modificável
+✅ Plataforma para experimentação e pesquisa
+✅ Base para desenvolvimento de sistemas mais robustos
+✅ Demonstração de arquitetura de ML em produção
+```
+
+## **🛡️ Uso Responsável e Ético**
+
+#### **Diretrizes de Uso**
+
+```
+🎯 DIRETRIZES OBRIGATÓRIAS
+
+ANTES de qualquer decisão de investimento:
+├── 📚 Estude os fundamentos da empresa (balanços, DRE, fluxo de caixa)
+├── 📊 Analise o contexto macroeconômico e setorial
+├── 💰 Defina seu perfil de risco e objetivos
+├── 🎯 Diversifique adequadamente seus investimentos  
+├── 👨‍💼 Consulte profissionais qualificados (analistas, assessores)
+├── 📈 Use múltiplas fontes de análise
+└── 🧠 Desenvolva seu próprio conhecimento financeiro
+
+⚠️  NUNCA invista mais do que pode perder
+⚠️  SEMPRE faça sua própria análise independente
+⚠️  Este sistema pode estar COMPLETAMENTE ERRADO
+⚠️  Performance passada NÃO garante resultados futuras
+⚠️  Mercados são imprevisíveis por natureza
+```
+
+#### **Responsabilidades do Usuário**
+
+| Responsabilidade | Descrição | Importância |
+|------------------|-----------|-------------|
+| **Due Diligence** | Pesquisar independentemente cada investimento | 🔴 Crítica |
+| **Gestão de Risco** | Definir stop-loss e position sizing | 🔴 Crítica |
+| **Diversificação** | Não concentrar em poucos ativos | 🟡 Alta |
+| **Educação Contínua** | Estudar mercados e investimentos | 🟡 Alta |
+| **Compliance** | Seguir regulamentações aplicáveis | 🔴 Crítica |
+
+
+## **Disclaimer Legal**
+
+```
+📋 ISENÇÃO DE RESPONSABILIDADE
+
+Este software é fornecido "como está", sem garantias de qualquer tipo.
+Os desenvolvedores não se responsabilizam por:
+
+• Perdas financeiras decorrentes do uso das previsões
+• Decisões de investimento baseadas nas informações fornecidas  
+• Falhas técnicas ou indisponibilidade do sistema
+• Precisão ou atualidade dos dados e previsões
+• Conformidade com regulamentações específicas
+
+O uso deste sistema implica na aceitação integral destes termos.
+```
+
+# Estrutura do Projeto
 
 ```
 tech4/
@@ -814,95 +1337,24 @@ tech4/
     └── 📄 prometheus.yml          # Configuração de scraping
 ```
 
----
+# Licença e Contribuição
 
-## ⚠️ **Limitações e Uso Responsável**
+## **📋 Licença MIT**
 
-### **Limitações Técnicas**
+Este projeto é **open source** sob a [Licença MIT](LICENSE). Você pode:
 
-#### **📊 Dados e Modelos**
-
-- **Período**: Limitado a 3 anos de histórico
-- **Frequência**: Apenas dados diários (não intraday)
-- **Ativos**: Restrito a 5 ações da B3
-- **Dependência**: Yahoo Finance como única fonte
-
-#### **🧠 Machine Learning**
-
-- **Arquitetura**: LSTM simples (não ensemble)
-- **Features**: Apenas preços históricos (sem fundamentalistas)
-- **Retreinamento**: Manual (não automático)
-- **Validação**: Sem walk-forward analysis
-
-#### **⚡ Performance**
-
-- **Latência**: ~200-500ms por previsão
-- **Concorrência**: Não otimizado para alta carga
-- **Cache**: Sem TTL automático
-- **Escalabilidade**: Single-instance apenas
-
-### **Limitações Financeiras**
-
-#### **❌ O que este sistema NÃO é:**
-
-- ❌ **Consultoria financeira**: Não substitui análise profissional
-- ❌ **Garantia de lucro**: Performance passada ≠ resultados futuros
-- ❌ **Análise fundamentalista**: Não considera balanços, notícias, macro
-- ❌ **Sistema de trading**: Não executa ordens automaticamente
-
-#### **✅ O que este sistema É:**
-
-- ✅ **Ferramenta educacional**: Para aprender ML em finanças
-- ✅ **Prova de conceito**: Demonstração técnica de LSTM
-- ✅ **Sistema de apoio**: Uma camada extra de informação
-- ✅ **Código aberto**: Auditável e modificável
-
-### **🛡️ Uso Responsável**
-
-```
-🚨 AVISO IMPORTANTE
-
-Este sistema é para fins EDUCACIONAIS e de PESQUISA apenas.
-
-ANTES de qualquer decisão de investimento:
-├── 📚 Estude os fundamentos da empresa
-├── 📊 Analise o contexto macroeconômico  
-├── 💰 Gerencie seu risco adequadamente
-├── 🎯 Diversifique seus investimentos
-└── 👨‍💼 Consulte profissionais qualificados
-
-⚠️  NUNCA invista mais do que pode perder
-⚠️  SEMPRE faça sua própria análise
-⚠️  Este sistema pode estar ERRADO
-```
-
----
-
-## Apresentação e Demonstração
-
-### 🌐 Aplicação Online
-
-Acesse a aplicação online hospedada no:
-
----
-
-### 🎥 Vídeo explicativo
-
-[![Watch the video](https://img.youtube.com/vi/SEU_VIDEO_ID/maxresdefault.jpg)](https://youtu.be/SEU_VIDEO_ID)
----
-
-### 📄 **Licença MIT**
-
-Este projeto é **open source** sob a licença MIT. Você pode:
-
-- ✅ Usar comercialmente
-- ✅ Modificar o código
-- ✅ Distribuir
-- ✅ Usar privadamente
+| Permissão | Descrição |
+|-----------|-----------|
+| ✅ **Uso Comercial** | Usar o código em projetos comerciais |
+| ✅ **Modificação** | Alterar e adaptar o código |
+| ✅ **Distribuição** | Compartilhar o código original ou modificado |
+| ✅ **Uso Privado** | Usar em projetos privados |
+| ✅ **Sublicenciamento** | Aplicar outras licenças compatíveis |
 
 **Apenas pedimos que:**
+- 📝 Mantenha o aviso de copyright original
+- 📋 Inclua uma cópia da licença MIT
+- 🔗 Referencie este projeto se usar partes significativas do código
 
-- 📝 Mantenha o aviso de copyright
-- 📋 Inclua a licença MIT
+---
 
-___
