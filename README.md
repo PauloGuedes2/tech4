@@ -671,9 +671,8 @@ flowchart TD
 - **Denormalização:** MinMaxScaler.inverse_transform
 - **Saída:** Preço previsto do próximo dia útil (R$)
 
-<!--
-```mermaid
- graph TD
+```mermaid 
+graph TD
  subgraph "Input Layer"
  Input[Input Sequence<br/>Shape: (batch_size, 60, 1)<br/>Normalized Close Prices<br/>MinMax Scaled [0,1]]
  end
@@ -717,7 +716,6 @@ flowchart TD
  class Dense1,Dense2 denseLayer
  class Denorm,Output outputLayer
 ```
--->
 
 ## **Configurações de Treinamento**
 
