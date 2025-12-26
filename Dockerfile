@@ -1,51 +1,39 @@
-FROM grafana/grafana-oss:10.4.3
+# Use a imagem Python base
+FROM python:3.11-slim
 
-USER root
+# Instalar Nginx, Grafana e dependências
+RUN apt-get update && apt-get install -y nginx wget gnupg2 curl \
+    && mkdir -p /etc/apt/keyrings \
+    && wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor > /etc/apt/keyrings/grafana.gpg \
+    && echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" > /etc/apt/list.d/grafana.list \
+    && apt-get update && apt-get install -y grafana \
+    && rm -rf /var/lib/apt/lists/*
 
-# ===============================
-# Dependências do sistema (Alpine)
-# ===============================
-RUN apk update && apk add --no-cache \
-    python3 \
-    py3-pip \
-    nginx \
-    supervisor \
-    sqlite \
-    wget \
-    curl
-
-# ===============================
-# Prometheus
-# ===============================
-RUN wget https://github.com/prometheus/prometheus/releases/download/v2.52.0/prometheus-2.52.0.linux-amd64.tar.gz \
- && tar -xzf prometheus-2.52.0.linux-amd64.tar.gz \
- && mv prometheus-2.52.0.linux-amd64/prometheus /usr/local/bin/ \
- && mv prometheus-2.52.0.linux-amd64/promtool /usr/local/bin/ \
- && mkdir -p /etc/prometheus \
- && rm -rf prometheus-2.52.0*
-
-# ===============================
-# App FastAPI (Python venv)
-# ===============================
 WORKDIR /app
 
-RUN python3 -m venv /venv
-ENV PATH="/venv/bin:$PATH"
-
+# Instalar dependências da API
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copiar código e configurações
 COPY src/ ./src/
+COPY nginx.conf /etc/nginx/nginx.conf
+# Se você tiver a pasta grafana com provisioning, descomente a linha abaixo:
+# COPY grafana/ /etc/grafana/
 
-# ===============================
-# Configs
-# ===============================
-COPY deploy/nginx.conf /etc/nginx/nginx.conf
-COPY deploy/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY deploy/grafana.ini /etc/grafana/grafana.ini
-COPY prometheus/prometheus.yml /etc/prometheus/prometheus.yml
+# Variáveis de ambiente para o Grafana rodar atrás de subcaminho (/grafana)
+ENV GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:%(http_port)s/grafana/
+ENV GF_SERVER_SERVE_FROM_SUB_PATH=true
+ENV GF_SECURITY_ADMIN_PASSWORD=admin
 
-# ===============================
-# Start
-# ===============================
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# Script para rodar os 3 processos juntos
+RUN echo '#!/bin/bash\n\
+nginx -g "daemon off;" & \n\
+grafana-server --homepath /usr/share/grafana --config /etc/grafana/grafana.ini & \n\
+uvicorn src.app.main:app --host 0.0.0.0 --port 8000\n\
+' > /app/start.sh && chmod +x /app/start.sh
+
+# O Render vai se conectar na porta 10000 do Nginx
+EXPOSE 10000
+
+CMD ["/app/start.sh"]
