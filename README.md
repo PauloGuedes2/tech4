@@ -658,9 +658,8 @@ flowchart TD
 
 ## **Arquitetura da Rede Neural LSTM**
 
-> **Atenção:** O diagrama abaixo pode não ser renderizado corretamente no GitHub devido a limitações do suporte a sintaxe Mermaid. Caso encontre problemas, visualize o diagrama em um editor compatível ou consulte a descrição textual abaixo.
+**Arquitetura LSTM utilizada:**
 
-**Descrição textual da arquitetura:**
 - **Input Layer:** Sequência de preços normalizados (shape: batch_size, 60, 1)
 - **LSTM Layer 1:** 50 unidades, retorna sequências, ativação tanh
 - **Dropout Layer 1:** taxa 0.2
@@ -671,51 +670,6 @@ flowchart TD
 - **Denormalização:** MinMaxScaler.inverse_transform
 - **Saída:** Preço previsto do próximo dia útil (R$)
 
-```mermaid 
-graph TD
- subgraph "Input Layer"
- Input[Input Sequence<br/>Shape: (batch_size, 60, 1)<br/>Normalized Close Prices<br/>MinMax Scaled [0,1]]
- end
- 
- subgraph "LSTM Stack - Feature Extraction"
- LSTM1[LSTM Layer 1<br/>Units: 50<br/>Return Sequences: True<br/>Activation: tanh<br/>Recurrent Dropout: 0.0]
- Drop1[Dropout Layer 1<br/>Rate: 0.2<br/>Regularization<br/>Prevent Overfitting]
- 
- LSTM2[LSTM Layer 2<br/>Units: 50<br/>Return Sequences: False<br/>Activation: tanh<br/>Final Sequence Output]
- Drop2[Dropout Layer 2<br/>Rate: 0.2<br/>Regularization<br/>Feature Noise Reduction]
- end
- 
- subgraph "Dense Layers - Decision Making"
- Dense1[Dense Layer 1<br/>Units: 25<br/>Activation: ReLU<br/>Feature Compression]
- Dense2[Dense Layer 2<br/>Units: 1<br/>Activation: Linear<br/>Price Regression Output]
- end
- 
- subgraph "Output Processing"
- Denorm[Denormalization<br/>MinMaxScaler.inverse_transform<br/>Convert to Real Price]
- Output[Price Prediction<br/>Next Day Close Price<br/>Brazilian Real (R$)]
- end
- 
- Input --> LSTM1
- LSTM1 --> Drop1
- Drop1 --> LSTM2
- LSTM2 --> Drop2
- Drop2 --> Dense1
- Dense1 --> Dense2
- Dense2 --> Denorm
- Denorm --> Output
- 
- classDef inputLayer fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
- classDef lstmLayer fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
- classDef dropoutLayer fill:#fff3e0,stroke:#f57c00,stroke-width:2px
- classDef denseLayer fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
- classDef outputLayer fill:#ffebee,stroke:#d32f2f,stroke-width:2px
- 
- class Input inputLayer
- class LSTM1,LSTM2 lstmLayer
- class Drop1,Drop2 dropoutLayer
- class Dense1,Dense2 denseLayer
- class Denorm,Output outputLayer
-```
 
 ## **Configurações de Treinamento**
 
