@@ -196,6 +196,11 @@ graph TB
         Metrics[Application Metrics]
     end
     
+    subgraph "Containerization"
+        Docker[Docker Engine]
+        Compose[Docker Compose]
+    end
+    
     Client --> FastAPI
     FastAPI --> Auth
     Auth --> PredService
@@ -220,6 +225,7 @@ graph TB
     classDef mlLayer fill:#fff3e0,stroke:#f57c00,stroke-width:2px
     classDef dataLayer fill:#fce4ec,stroke:#c2185b,stroke-width:2px
     classDef obsLayer fill:#f1f8e9,stroke:#689f38,stroke-width:2px
+    classDef containerLayer fill:#e8eaf6,stroke:#283593,stroke-width:2px
     
     class Client clientLayer
     class FastAPI,Auth,Middleware apiLayer
@@ -227,6 +233,7 @@ graph TB
     class ModelRegistry,LSTMModels,Scalers mlLayer
     class SQLiteCache,YahooAPI dataLayer
     class Prometheus,Grafana,Metrics obsLayer
+    class Docker,Compose containerLayer
 ```
 
 ### **Componentes Principais**
@@ -256,7 +263,7 @@ graph TB
 
 - **RegressaoLSTM**: Classe principal do modelo
 - **Arquitetura**: 3 camadas LSTM + Dropout
-- **Persistência**: Keras (.keras) + Joblib (.joblib)
+- **Persistência**: Keras (.keras) + Joblib (.jobjob)
 - **Métricas**: Cálculo automático de MAE, RMSE, MAPE
 
 ### **Fluxo de Dados**
@@ -352,78 +359,6 @@ flowchart TD
     class CacheCheck,ValidateData,UpdateCache cacheNodes
     class ExternalAPI,RateLimit,FetchData,BackoffRetry externalNodes
     class ProcessData,ReturnCached,ReturnFresh processNodes
-```
-
-### **Arquitetura de Deploy**
-
-```mermaid
-graph TB
-    subgraph "Load Balancer / Reverse Proxy"
-        LB[Nginx / Traefik<br/>Port: 80/443]
-    end
-    
-    subgraph "Application Layer"
-        API1[FastAPI Instance 1<br/>Port: 8000]
-        API2[FastAPI Instance 2<br/>Port: 8001]
-        API3[FastAPI Instance N<br/>Port: 800N]
-    end
-    
-    subgraph "Monitoring Stack"
-        PROM[Prometheus<br/>Port: 9090]
-        GRAF[Grafana<br/>Port: 3000]
-        ALERT[AlertManager<br/>Port: 9093]
-    end
-    
-    subgraph "Data Layer"
-        CACHE[(Redis Cache<br/>Port: 6379)]
-        DB[(SQLite / PostgreSQL)]
-        STORAGE[(Model Storage<br/>S3 / NFS)]
-    end
-    
-    subgraph "External Services"
-        YAHOO[Yahoo Finance API]
-        SLACK[Slack Notifications]
-    end
-    
-    LB --> API1
-    LB --> API2
-    LB --> API3
-    
-    API1 --> CACHE
-    API2 --> CACHE
-    API3 --> CACHE
-    
-    API1 --> DB
-    API2 --> DB
-    API3 --> DB
-    
-    API1 --> STORAGE
-    API2 --> STORAGE
-    API3 --> STORAGE
-    
-    API1 -.-> YAHOO
-    API2 -.-> YAHOO
-    API3 -.-> YAHOO
-    
-    PROM --> API1
-    PROM --> API2
-    PROM --> API3
-    
-    GRAF --> PROM
-    ALERT --> PROM
-    ALERT -.-> SLACK
-    
-    classDef apiNodes fill:#e8f5e8,stroke:#4caf50,stroke-width:2px
-    classDef monitorNodes fill:#fff3e0,stroke:#ff9800,stroke-width:2px
-    classDef dataNodes fill:#e3f2fd,stroke:#2196f3,stroke-width:2px
-    classDef externalNodes fill:#fce4ec,stroke:#e91e63,stroke-width:2px
-    classDef lbNodes fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
-    
-    class API1,API2,API3 apiNodes
-    class PROM,GRAF,ALERT monitorNodes
-    class CACHE,DB,STORAGE dataNodes
-    class YAHOO,SLACK externalNodes
-    class LB lbNodes
 ```
 
 # Instalação e Configuração
@@ -707,51 +642,66 @@ flowchart TD
 
 ## **Arquitetura da Rede Neural LSTM**
 
+> **Atenção:** O diagrama abaixo pode não ser renderizado corretamente no GitHub devido a limitações do suporte a sintaxe Mermaid. Caso encontre problemas, visualize o diagrama em um editor compatível ou consulte a descrição textual abaixo.
+
+**Descrição textual da arquitetura:**
+- **Input Layer:** Sequência de preços normalizados (shape: batch_size, 60, 1)
+- **LSTM Layer 1:** 50 unidades, retorna sequências, ativação tanh
+- **Dropout Layer 1:** taxa 0.2
+- **LSTM Layer 2:** 50 unidades, não retorna sequências, ativação tanh
+- **Dropout Layer 2:** taxa 0.2
+- **Dense Layer 1:** 25 unidades, ativação ReLU
+- **Dense Layer 2:** 1 unidade, ativação linear (regressão)
+- **Denormalização:** MinMaxScaler.inverse_transform
+- **Saída:** Preço previsto do próximo dia útil (R$)
+
+<!--
 ```mermaid
-graph TD
-    subgraph "Input Layer"
-        Input[Input Sequence<br/>Shape: (batch_size, 60, 1)<br/>Normalized Close Prices<br/>MinMax Scaled [0,1]]
-    end
-    
-    subgraph "LSTM Stack - Feature Extraction"
-        LSTM1[LSTM Layer 1<br/>Units: 50<br/>Return Sequences: True<br/>Activation: tanh<br/>Recurrent Dropout: 0.0]
-        Drop1[Dropout Layer 1<br/>Rate: 0.2<br/>Regularization<br/>Prevent Overfitting]
-        
-        LSTM2[LSTM Layer 2<br/>Units: 50<br/>Return Sequences: False<br/>Activation: tanh<br/>Final Sequence Output]
-        Drop2[Dropout Layer 2<br/>Rate: 0.2<br/>Regularization<br/>Feature Noise Reduction]
-    end
-    
-    subgraph "Dense Layers - Decision Making"
-        Dense1[Dense Layer 1<br/>Units: 25<br/>Activation: ReLU<br/>Feature Compression]
-        Dense2[Dense Layer 2<br/>Units: 1<br/>Activation: Linear<br/>Price Regression Output]
-    end
-    
-    subgraph "Output Processing"
-        Denorm[Denormalization<br/>MinMaxScaler.inverse_transform<br/>Convert to Real Price]
-        Output[Price Prediction<br/>Next Day Close Price<br/>Brazilian Real (R$)]
-    end
-    
-    Input --> LSTM1
-    LSTM1 --> Drop1
-    Drop1 --> LSTM2
-    LSTM2 --> Drop2
-    Drop2 --> Dense1
-    Dense1 --> Dense2
-    Dense2 --> Denorm
-    Denorm --> Output
-    
-    classDef inputLayer fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
-    classDef lstmLayer fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    classDef dropoutLayer fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-    classDef denseLayer fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
-    classDef outputLayer fill:#ffebee,stroke:#d32f2f,stroke-width:2px
-    
-    class Input inputLayer
-    class LSTM1,LSTM2 lstmLayer
-    class Drop1,Drop2 dropoutLayer
-    class Dense1,Dense2 denseLayer
-    class Denorm,Output outputLayer
+ graph TD
+ subgraph "Input Layer"
+ Input[Input Sequence<br/>Shape: (batch_size, 60, 1)<br/>Normalized Close Prices<br/>MinMax Scaled [0,1]]
+ end
+ 
+ subgraph "LSTM Stack - Feature Extraction"
+ LSTM1[LSTM Layer 1<br/>Units: 50<br/>Return Sequences: True<br/>Activation: tanh<br/>Recurrent Dropout: 0.0]
+ Drop1[Dropout Layer 1<br/>Rate: 0.2<br/>Regularization<br/>Prevent Overfitting]
+ 
+ LSTM2[LSTM Layer 2<br/>Units: 50<br/>Return Sequences: False<br/>Activation: tanh<br/>Final Sequence Output]
+ Drop2[Dropout Layer 2<br/>Rate: 0.2<br/>Regularization<br/>Feature Noise Reduction]
+ end
+ 
+ subgraph "Dense Layers - Decision Making"
+ Dense1[Dense Layer 1<br/>Units: 25<br/>Activation: ReLU<br/>Feature Compression]
+ Dense2[Dense Layer 2<br/>Units: 1<br/>Activation: Linear<br/>Price Regression Output]
+ end
+ 
+ subgraph "Output Processing"
+ Denorm[Denormalization<br/>MinMaxScaler.inverse_transform<br/>Convert to Real Price]
+ Output[Price Prediction<br/>Next Day Close Price<br/>Brazilian Real (R$)]
+ end
+ 
+ Input --> LSTM1
+ LSTM1 --> Drop1
+ Drop1 --> LSTM2
+ LSTM2 --> Drop2
+ Drop2 --> Dense1
+ Dense1 --> Dense2
+ Dense2 --> Denorm
+ Denorm --> Output
+ 
+ classDef inputLayer fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+ classDef lstmLayer fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+ classDef dropoutLayer fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+ classDef denseLayer fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
+ classDef outputLayer fill:#ffebee,stroke:#d32f2f,stroke-width:2px
+ 
+ class Input inputLayer
+ class LSTM1,LSTM2 lstmLayer
+ class Drop1,Drop2 dropoutLayer
+ class Dense1,Dense2 denseLayer
+ class Denorm,Output outputLayer
 ```
+-->
 
 ## **Configurações de Treinamento**
 
@@ -1336,25 +1286,4 @@ tech4/
 └── 📁 prometheus/                 # Configuração Prometheus
     └── 📄 prometheus.yml          # Configuração de scraping
 ```
-
-# Licença e Contribuição
-
-## **📋 Licença MIT**
-
-Este projeto é **open source** sob a [Licença MIT](LICENSE). Você pode:
-
-| Permissão | Descrição |
-|-----------|-----------|
-| ✅ **Uso Comercial** | Usar o código em projetos comerciais |
-| ✅ **Modificação** | Alterar e adaptar o código |
-| ✅ **Distribuição** | Compartilhar o código original ou modificado |
-| ✅ **Uso Privado** | Usar em projetos privados |
-| ✅ **Sublicenciamento** | Aplicar outras licenças compatíveis |
-
-**Apenas pedimos que:**
-- 📝 Mantenha o aviso de copyright original
-- 📋 Inclua uma cópia da licença MIT
-- 🔗 Referencie este projeto se usar partes significativas do código
-
----
 
