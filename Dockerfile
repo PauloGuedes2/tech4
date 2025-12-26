@@ -11,13 +11,16 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# ===== Grafana =====
-RUN curl -fsSL https://packages.grafana.com/gpg.key | gpg --dearmor -o /usr/share/keyrings/grafana.gpg \
- && echo "deb [signed-by=/usr/share/keyrings/grafana.gpg] https://packages.grafana.com/oss/deb stable main" \
-    > /etc/apt/sources.list.d/grafana.list \
- && apt-get update \
- && apt-get install -y grafana \
- && rm -rf /var/lib/apt/lists/*
+# ===== Grafana (sem gpg, compatível com slim) =====
+RUN apt-get update && apt-get install -y \
+    adduser \
+    libfontconfig1 \
+    wget \
+ && wget https://dl.grafana.com/oss/release/grafana_10.4.3_amd64.deb \
+ && dpkg -i grafana_10.4.3_amd64.deb \
+ && apt-get -f install -y \
+ && rm -rf /var/lib/apt/lists/* grafana_10.4.3_amd64.deb
+
 
 # ===== Prometheus =====
 RUN curl -LO https://github.com/prometheus/prometheus/releases/download/v2.52.0/prometheus-2.52.0.linux-amd64.tar.gz \
