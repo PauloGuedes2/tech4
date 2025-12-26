@@ -3,17 +3,16 @@ FROM grafana/grafana-oss:10.4.3
 USER root
 
 # ===============================
-# Dependências do sistema
+# Dependências do sistema (Alpine)
 # ===============================
-RUN apt-get update && apt-get install -y \
+RUN apk update && apk add --no-cache \
     python3 \
-    python3-pip \
+    py3-pip \
     nginx \
     supervisor \
-    sqlite3 \
+    sqlite \
     wget \
-    curl \
- && rm -rf /var/lib/apt/lists/*
+    curl
 
 # ===============================
 # Prometheus
@@ -44,4 +43,4 @@ COPY prometheus/prometheus.yml /etc/prometheus/prometheus.yml
 # ===============================
 # Start
 # ===============================
-CMD ["/usr/bin/supervisord"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
