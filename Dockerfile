@@ -1,34 +1,19 @@
-FROM python:3.11-slim
+FROM grafana/grafana-oss:10.4.3
 
-ENV DEBIAN_FRONTEND=noninteractive
+USER root
 
 # ===============================
-# Sistema e dependências básicas
+# Dependências do sistema
 # ===============================
 RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    tzdata \
-    libc6 \
-    libgcc-s1 \
-    libstdc++6 \
-    libfontconfig1 \
-    wget \
-    curl \
-    adduser \
-    apt-utils \
+    python3 \
+    python3-pip \
     nginx \
     supervisor \
     sqlite3 \
+    wget \
+    curl \
  && rm -rf /var/lib/apt/lists/*
-
-# ===============================
-# Grafana (instalação via .deb)
-# ===============================
-RUN wget https://dl.grafana.com/oss/release/grafana_10.4.3_amd64.deb \
- && dpkg -i grafana_10.4.3_amd64.deb || true \
- && apt-get update \
- && apt-get -f install -y \
- && rm -rf /var/lib/apt/lists/* grafana_10.4.3_amd64.deb
 
 # ===============================
 # Prometheus
@@ -41,25 +26,20 @@ RUN wget https://github.com/prometheus/prometheus/releases/download/v2.52.0/prom
  && rm -rf prometheus-2.52.0*
 
 # ===============================
-# Aplicação FastAPI
+# App FastAPI
 # ===============================
 WORKDIR /app
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt
 COPY src/ ./src/
 
 # ===============================
-# Configurações
+# Configs
 # ===============================
 COPY deploy/nginx.conf /etc/nginx/nginx.conf
 COPY deploy/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY deploy/grafana.ini /etc/grafana/grafana.ini
 COPY prometheus/prometheus.yml /etc/prometheus/prometheus.yml
-
-# ===============================
-# Porta (Render ignora, mas documenta)
-# ===============================
-EXPOSE 10000
 
 # ===============================
 # Start
