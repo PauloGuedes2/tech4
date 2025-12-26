@@ -25,11 +25,16 @@ RUN wget https://github.com/prometheus/prometheus/releases/download/v2.52.0/prom
  && rm -rf prometheus-2.52.0*
 
 # ===============================
-# App FastAPI
+# App FastAPI (Python venv)
 # ===============================
 WORKDIR /app
+
+RUN python3 -m venv /venv
+ENV PATH="/venv/bin:$PATH"
+
 COPY requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
 COPY src/ ./src/
 
 # ===============================
