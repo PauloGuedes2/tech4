@@ -101,7 +101,7 @@ Sistema avançado de previsão de preços de ações da B3 utilizando redes neur
 ## **Aplicação Hospedada**
 >
 > - **Aplicação:** http://56.125.194.131:8000/docs
-> - **Grafana:** http://56.125.194.131:3000/
+> - **Grafana:** http://56.125.194.131:3000/dashboards
 
 ## **Vídeo Explicativo**
 
