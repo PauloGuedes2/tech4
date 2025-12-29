@@ -23,12 +23,13 @@
 - [Arquitetura do Projeto](#arquitetura-do-projeto)
 - [Instalação e Configuração](#instalação-e-configuração)
 - [Execução e Deploy](#execução-e-deploy)
+- [Deploy na AWS](#deploy-na-aws)
 - [Treinamento dos Modelos](#treinamento-dos-modelos)
 - [Documentação da API](#documentação-da-api)
 - [Observabilidade e Monitoramento](#observabilidade-e-monitoramento)
 - [Limitações e Responsabilidades](#limitações-e-responsabilidades)
 - [Estrutura do Projeto](#estrutura-do-projeto)
-- [Licença e Contribuição](#licença-e-contribuição)
+- [Licença e Contribuição](#licença-e-contribuição
 
 # Visão Geral e Motivação
 
@@ -581,6 +582,80 @@ python -c "import yfinance as yf; print(yf.download('VALE3.SA', period='1d'))"
 # Verificar métricas do Prometheus
 curl -s http://localhost:9090/api/v1/query?query=up
 ```
+
+# Deploy na AWS
+
+A aplicação foi hospedada na **AWS Free Tier** utilizando uma instância **EC2 t3.micro** com **Ubuntu 22.04 LTS**, demonstrando como deployar um sistema de ML em produção com recursos limitados.
+
+## **Infraestrutura Utilizada**
+
+| Componente | Especificação           | Observações |
+|------------|-------------------------|-------------|
+| **Instância** | EC2 t3.micro            | 1 vCPU, 1GB RAM, Free Tier elegível |
+| **Sistema Operacional** | Ubuntu 22.04 LTS        | AMI oficial da Canonical |
+| **Armazenamento** | 30GB gp3 SSD            | Volume EBS |
+| **Rede** | VPC padrão + Elastic IP | IP público fixo |
+| **Containerização** | Docker + Docker Compose | Orquestração de serviços |
+
+## **Arquitetura de Deploy**
+
+```mermaid 
+graph TB
+    subgraph "AWS Cloud"
+        EC2[EC2 t3.micro<br/>Ubuntu 22.04]
+        EIP[Elastic IP]
+        SG[Security Group<br/>Ports: 22, 8000, 3000, 9090]
+        EBS[EBS 30GB SSD]
+    end
+    
+    subgraph "Aplicação"
+        Docker[Docker Engine]
+        API[FastAPI:8000]
+        Grafana[Grafana:3000]
+        Prometheus[Prometheus:9090]
+        SQLite[SQLite DB]
+    end
+    
+    Users[Usuários] --> EIP
+    EIP --> EC2
+    EC2 --> SG
+    EC2 --> EBS
+    EC2 --> Docker
+    Docker --> API
+    Docker --> Grafana
+    Docker --> Prometheus
+    API --> SQLite
+    
+    classDef aws fill:#ff9900,stroke:#232f3e,stroke-width:2px,color:#fff
+    classDef app fill:#146eb4,stroke:#232f3e,stroke-width:2px,color:#fff
+    
+    class EC2,EIP,SG,EBS aws
+    class Docker,API,Grafana,Prometheus,SQLite app
+```
+
+## **Otimizações para t3.micro**
+- **Swap de 7GB** configurado para compensar limitação de RAM
+- **Restart automático** dos containers em caso de falha
+- **Health checks** configurados para monitoramento
+
+## **Endpoints Disponíveis**
+
+```
+📊 API Principal:        http://elastic-ip:8000
+📚 Documentação:         http://elastic-ip:8000/docs
+📈 Dashboard Grafana:    http://elastic-ip:3000
+🔍 Métricas Prometheus:  http://elastic-ip:9090
+```
+
+## **Custos (Free Tier)**
+
+| Recurso | Custo Mensal |
+|---------|--------------|
+| **EC2 t3.micro** | $0 (750h grátis) |
+| **EBS 8GB** | $0 (30GB grátis) |
+| **Elastic IP** | $0 |
+| **Data Transfer** | $0 (15GB grátis) |
+| **Total** | **$0/mês** |
 
 # Treinamento dos Modelos
 
