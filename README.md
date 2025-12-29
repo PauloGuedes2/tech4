@@ -99,15 +99,13 @@ Sistema avançado de previsão de preços de ações da B3 utilizando redes neur
 # Demonstração Rápida
 
 ## **Aplicação Hospedada**
-
-> _Espaço reservado para inserir o link da aplicação em produção e do dashboard Grafana hospedado._
 >
-> - **Aplicação:** [URL da aplicação aqui]
-> - **Grafana:** [URL do Grafana aqui]
+> - **Aplicação:** http://56.125.194.131:8000/docs
+> - **Grafana:** http://56.125.194.131:3000/
 
 ## **Vídeo Explicativo**
 
-> _Espaço reservado para inserir o link e/ou thumbnail do vídeo explicativo do projeto._
+**🎬 Assista ao vídeo completo:** [API de Previsão de Cotações com LSTM - Demonstração Completa](https://youtu.be/qwVbdNO-BjU?si=h6QF_cmVnHEgJpJX)
 
 ## **Exemplo de Execução do Treinamento**
 
